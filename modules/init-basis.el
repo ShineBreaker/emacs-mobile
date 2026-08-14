@@ -8,6 +8,10 @@
 
 ;;; Code:
 
+(defgroup emacs-mobile nil
+  "emacs-mobile 配置。"
+  :group 'emacs)
+
 (defconst custom:android-p (eq system-type 'android)
   "是否运行在 Android 原生 Emacs 上。")
 
