@@ -8,11 +8,31 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 ## 1. APK 选择
 
-下载 `https://ftp.gnu.org/gnu/emacs/android/termux/` 下的 arm64-v8a APK（**termux 子目录版**，可与 Termux 共享签名后调用其 git 等命令）。⚠️ 待真机验证：具体文件名与 30.2 版本的对应关系。
+termux 版 Emacs 在 `https://ftp.gnu.org/gnu/emacs/android/termux/`（国内镜像：[阿里云](https://mirrors.aliyun.com/gnu/emacs/android/termux/)），文件名规则 `emacs-<版本>-<最低Android API>-<ABI>.apk`。现代 arm 手机选 `emacs-30.2-29-arm64-v8a.apk`（Android 10+）；ABI 与设备不符会导致子进程执行失败。termux 版与根目录独立版 Emacs **不能共存**，切换需先卸载。
 
-## 2. Termux 签名兼容 ⚠️ 待真机验证
+## 2. Termux 签名兼容
 
-termux 版 Emacs 与 Termux 共享签名后才能 exec 其二进制（否则 `CANNOT LINK EXECUTABLE`）。重签流程**未实测**，实测后回填本节。在验证完成前，配置在无 Termux 环境下也能运行（外部命令守卫自动降级）。
+机制：termux 版 Emacs 与 Termux 的 manifest 都声明 `sharedUserId`，两个 APK 只有用**同一签名密钥**签名才会被系统分配同一 UID，Emacs 才能执行 Termux 内的程序（git 等）。F-Droid/GitHub 版 Termux 签名不同，不能直接混用（也无法覆盖升级）。
+
+**路线一（推荐，无需任何签名操作）**：官方已提供与 Emacs 同签名的 Termux 本体，流程来自 [GNU 官方 README](https://ftp.gnu.org/gnu/emacs/android/README)：
+
+1. 备份并卸载已有的 Emacs 与 Termux（卸载会清数据目录）
+2. **先**安装 [SourceForge: android-ports-for-gnu-emacs](https://sourceforge.net/projects/android-ports-for-gnu-emacs/files/termux/) 提供的 `termux-app_apt-android-7-release_universal.apk`
+3. **再**安装 GNU termux 目录的 Emacs APK（顺序不能反）
+4. 打开 Termux 执行 `pkg update && pkg upgrade`，之后 `pkg install git` 等即可在 Emacs 内使用
+
+**路线二（需要更新版 Termux 时自行重签）**：官方 Termux 版本较旧（不支持 Android 16）。用 Emacs 公开构建密钥重签 F-Droid 版 Termux（密钥库密码 `emacs1`，密钥取自 [emacs-mirror/emacs](https://github.com/emacs-mirror/emacs) 的 `java/` 目录）：
+
+```sh
+pkg install apksigner
+apksigner sign --v2-signing-enabled \
+  --ks emacs.keystore -debuggable-apk-permitted \
+  --ks-pass pass:emacs1 com.termux_1022.apk
+```
+
+也可直接使用 [johanwiden/termux-for-android-emacs](https://github.com/johanwiden/termux-for-android-emacs) 已签好的 Termux 0.119.0-beta（Android 15 实测可用）。重签版今后无法从 Termux 官方渠道覆盖升级，只能继续自签。
+
+装好后在 Emacs 侧无需额外配置：本配置 `early-init.el` 已按官方建议把 `/data/data/com.termux/files/usr/bin` 注入 `PATH`/`exec-path`。**不要设置 `LD_LIBRARY_PATH`**（官方 README 明确旧 FAQ 的该建议是错的，会导致系统库与 Termux 库冲突）。上述流程未在本机真机实测，装完后按 §7 清单验证。
 
 ## 3. 权限
 
