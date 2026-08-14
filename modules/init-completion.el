@@ -42,13 +42,6 @@
   :custom (corfu-auto t)
           (corfu-cycle t))
 
-;; 终端（tmux 沙箱校验）下 corfu 弹出框不可用，切到终端前端
-(use-package corfu-terminal
-  :after corfu
-  :config
-  (unless (display-graphic-p)
-    (corfu-terminal-mode)))
-
 (use-package cape
   :after corfu
   :init
