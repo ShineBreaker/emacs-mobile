@@ -45,10 +45,17 @@ termux 版 Emacs 在 `https://ftp.gnu.org/gnu/emacs/android/termux/`（国内镜
 
 ## 4. 部署
 
+完整仓库 clone 在 Termux home（git 可用），Emacs 自身的 `~/.emacs.d`（`/data/data/org.gnu.emacs/files/.emacs.d/`）只放两个入口文件的副本：
+
 ```sh
-# 在 Termux 中（或 adb push）
-git clone <本仓库> ~/.emacs.d
+# Termux 中执行
+git clone <本仓库> ~/emacs-mobile
+mkdir -p /data/data/org.gnu.emacs/files/.emacs.d
+cp ~/emacs-mobile/early-init.el ~/emacs-mobile/init.el \
+   /data/data/org.gnu.emacs/files/.emacs.d/
 ```
+
+加载链路：Emacs home 的 `early-init.el` 探测到 Termux 仓库后重定向 `user-emacs-directory` 并加载仓库版本；`init.el` 的加载位置虽不随重定向变化（Emacs 机制，已实测），但此时 `user-emacs-directory` 已指向仓库，require 的即 Termux 仓库中的 modules。两个入口文件更新后需重新复制。
 
 首次启动 straight 自动走镜像装包（耗时数分钟）。org 笔记目录：配置探测 `/storage/emulated/0/Data/Synching/notebook/org/`（拼写待真机确认），存在则使用；不存在则回退 `~/.emacs.d/org/`。
 
