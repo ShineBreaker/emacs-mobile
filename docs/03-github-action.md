@@ -66,6 +66,7 @@ APKSIGNER="java -jar /path/to/apksigner.jar" scripts/resign-apk.sh <apk>
 
 | 现象                                     | 原因与处理                                                                                                      |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 装机报 `INSTALL_FAILED_SHARED_USER_INCOMPATIBLE`（Reconcile failed: ... shared user com.termux） | 设备上还有包占用 `com.termux` 共享用户且签名不同。最常见是 **Termux 插件残留**：Termux:API / Termux:Widget / Termux:Boot / Termux:Float 同样声明 `sharedUserId="com.termux"`，只卸主应用不够。把 Termux 系应用全部卸载（必要时重启手机清掉共享用户登记），再按先 Termux 后 Emacs 的顺序安装（实测：卸净插件即解决） |
 | 抓取步骤报 "release 列表获取失败" 或 403 | GitHub API 匿名限流。本地运行前 `export GITHUB_TOKEN=<token>`；CI 已自动传入                                    |
 | 报 "没有预览版"                          | 上游最近 30 个 release 全是稳定版（脚本只认 prerelease 标记）                                                   |
 | 报 "未匹配到 ... 的 APK 资产"            | 上游资产命名规则变化，或 flavor/abi 参数拼写错误                                                                |
