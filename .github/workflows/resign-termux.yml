@@ -1,0 +1,118 @@
+# 自动抓取 termux/termux-app 最新预览版（prerelease）APK，
+# 用 Emacs 官方公开构建密钥重签后发布为本仓库的 GitHub Release。
+# 原理与手动流程见 docs/。
+#
+# 触发:
+#   - workflow_dispatch: 手动触发，可指定上游 tag / flavor / ABI，可强制重建同名 release
+#   - schedule: 每天检查一次上游新预览版，已发布过的版本自动跳过
+#
+# 无需配置任何 Secrets：签名密钥本身是 Emacs 官方公开的（assets/emacs.keystore），
+# 发布使用内置 GITHUB_TOKEN。
+
+name: Resign Termux prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "上游 tag（留空取最新预览版）"
+        required: false
+        default: ""
+      flavor:
+        description: "flavor: apt-android-7（Android 7+）/ apt-android-5"
+        required: false
+        default: "apt-android-7"
+      abi:
+        description: "ABI: universal / arm64-v8a / armeabi-v7a / x86_64"
+        required: false
+        default: "universal"
+      force:
+        description: "同名 release 已存在时强制删除重建"
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    # 每天 UTC 18:30（北京时间 02:30）检查；无需自动时删除这两行
+    - cron: "30 18 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resign-termux
+  cancel-in-progress: false
+
+jobs:
+  resign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: android-actions/setup-android@v3
+
+      - name: 安装 build-tools（apksigner）
+        run: |
+          yes | sdkmanager --install "build-tools;34.0.0" >/dev/null
+          echo "$ANDROID_HOME/build-tools/34.0.0" >> "$GITHUB_PATH"
+
+      - name: 抓取上游预览版 APK
+        id: fetch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IN_TAG: ${{ inputs.tag }}
+          IN_FLAVOR: ${{ inputs.flavor }}
+          IN_ABI: ${{ inputs.abi }}
+        run: |
+          args=(-o download)
+          [[ -n "$IN_TAG" ]] && args+=(-t "$IN_TAG")
+          [[ -n "$IN_FLAVOR" ]] && args+=(-f "$IN_FLAVOR")
+          [[ -n "$IN_ABI" ]] && args+=(-a "$IN_ABI")
+          scripts/fetch-termux-prerelease.sh "${args[@]}"
+
+      - name: 检查该版本是否已发布
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.fetch.outputs.tag }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if [[ "$FORCE" == "true" ]]; then
+              echo "release $TAG 已存在，force=true，删除后重建"
+              gh release delete "$TAG" --yes --cleanup-tag
+            else
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "release $TAG 已存在，跳过（手动触发可勾选 force 强制重建）"
+            fi
+          fi
+
+      - name: 用 Emacs 构建密钥重签
+        if: steps.check.outputs.skip != 'true'
+        id: resign
+        env:
+          IN_APK: ${{ steps.fetch.outputs.apk }}
+        run: scripts/resign-apk.sh "$IN_APK"
+
+      - name: 发布 release
+        if: steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.fetch.outputs.tag }}
+          APK: ${{ steps.resign.outputs.apk }}
+          ASSET: ${{ steps.fetch.outputs.asset }}
+        run: |
+          notes=$(mktemp)
+          {
+            echo "用 GNU Emacs 官方公开构建密钥重签的 Termux 预览版，供 Android 原生 Emacs（\`org.gnu.emacs\`）共享 UID 使用。"
+            echo
+            echo "- 上游版本：[termux-app $TAG](https://github.com/termux/termux-app/releases/tag/$TAG)"
+            echo "- 原始资产：\`$ASSET\`（已按官方 sha256sums 校验）"
+            echo "- 签名密钥：Emacs 官方 \`emacs.keystore\`，证书 SHA-256 指纹 \`50b47e8f09b8781fccc998df3fc5c02de0dd9670a3d37e6cacba9f4e76319604\`"
+            echo
+            echo "**安装顺序**：先卸载已有的 Termux 与 Emacs（会清数据目录），先装本 APK，再装 GNU Emacs 的 termux 版 APK。详见仓库 \`docs/\`。"
+            echo
+            echo "**注意**：重签版与官方签名不同，无法从 Termux 官方渠道覆盖升级，升级请等本工作流发布新版本。"
+          } > "$notes"
+          gh release create "$TAG" "$APK" --prerelease \
+            --title "Termux $TAG (resigned for Emacs)" \
+            --notes-file "$notes"

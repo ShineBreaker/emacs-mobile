@@ -1,4 +1,5 @@
 PLAN.md
+
 # 生成物与本地状态，不入 git
 straight/
 var/
@@ -11,3 +12,9 @@ elfeed/
 *.elc
 \#*\#
 .mimosa/
+
+# termux autobuild
+ref/
+.mimosa/
+download/
+tools/
