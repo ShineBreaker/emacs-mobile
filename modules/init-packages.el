@@ -20,7 +20,7 @@
   :type '(choice (const :tag "TUNA" tuna)
                  (const :tag "USTC" ustc)
                  (const :tag "官方" nil))
-  :group 'emacs-mobile)
+  :group 'emacs-mobile)  ; 组定义见 init-basis.el
 
 (defcustom custom/github-proxy nil
   "GitHub 加速代理前缀（如 \"https://ghproxy.com/\"），nil 表示直连。
@@ -29,6 +29,26 @@ git clone 层面的加速待真机验证后实现（见 PLAN §15）。"
   :type '(choice (const :tag "直连" nil)
                  (string :tag "代理前缀"))
   :group 'emacs-mobile)
+
+;; 必须在 bootstrap 之前：straight 加载时即读取这些变量，
+;; 否则 check-for-modifications 按默认值在每次启动跑 mtime find 检查
+(defvar straight-use-package-by-default)
+(defvar straight-check-for-modifications)
+(defvar straight-vc-git-default-clone-depth)
+(defvar straight-recipes-gnu-elpa-use-mirror)
+(defvar straight-recipes-nongnu-elpa-use-mirror)
+(defvar straight-recipes-melpa-use-mirror)
+
+;; Android 启动速度优先：跳过修改检查 + 浅克隆
+(setq straight-use-package-by-default t
+      straight-check-for-modifications '()
+      straight-vc-git-default-clone-depth 1)
+
+;; ─── 第 2 层：straight recipe 仓库走官方 elpa mirror ────────────────
+
+(setq straight-recipes-gnu-elpa-use-mirror t
+      straight-recipes-nongnu-elpa-use-mirror t
+      straight-recipes-melpa-use-mirror t)
 
 ;; ─── straight bootstrap ─────────────────────────────────────────────
 
@@ -47,25 +67,6 @@ git clone 层面的加速待真机验证后实现（见 PLAN §15）。"
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
-
-;; 消除 byte-compile 对 free variable 赋值的告警（实际由 straight bootstrap 定义）
-(defvar straight-use-package-by-default)
-(defvar straight-check-for-modifications)
-(defvar straight-vc-git-default-clone-depth)
-(defvar straight-recipes-gnu-elpa-use-mirror)
-(defvar straight-recipes-nongnu-elpa-use-mirror)
-(defvar straight-recipes-melpa-use-mirror)
-
-;; Android 启动速度优先：跳过修改检查 + 浅克隆
-(setq straight-use-package-by-default t
-      straight-check-for-modifications '()
-      straight-vc-git-default-clone-depth 1)
-
-;; ─── 第 2 层：straight recipe 仓库走官方 elpa mirror ────────────────
-
-(setq straight-recipes-gnu-elpa-use-mirror t
-      straight-recipes-nongnu-elpa-use-mirror t
-      straight-recipes-melpa-use-mirror t)
 
 ;; ─── 第 1 层：package-archives 镜像（package.el fallback） ──────────
 
