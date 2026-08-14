@@ -10,3 +10,4 @@ org-roam.db
 elfeed/
 *.elc
 \#*\#
+.mimosa/
