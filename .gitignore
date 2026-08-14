@@ -15,6 +15,6 @@ elfeed/
 
 # termux autobuild
 ref/
-.mimosa/
 download/
 tools/
+.sandbox/
