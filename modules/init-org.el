@@ -51,6 +51,8 @@
 (defvar custom/org-capture--roam-title nil
   "本次 Roam capture 的标题。")
 
+(defvar org-capture-templates nil)  ; org-capture.el（模板在其加载后设置）
+
 (defun custom/org-capture--roam-file ()
   "返回本次长期笔记的 Roam 文件路径。"
   (custom/org--ensure-directories)
