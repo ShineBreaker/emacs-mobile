@@ -44,7 +44,12 @@
     (let ((termux-bin "/data/data/com.termux/files/usr/bin"))
       (when (file-directory-p termux-bin)
         (setenv "PATH" (concat termux-bin path-separator (getenv "PATH")))
-        (add-to-list 'exec-path termux-bin))))
+        (add-to-list 'exec-path termux-bin)))
+
+    ;; 底部 tool-bar（拇指可达）。须在 frame 创建前设置（init 阶段已晚），
+    ;; 故放 early-init；init-touch 中不重复设置。
+    (defvar tool-bar-position)  ; Android 构建定义，此阶段可能尚未 defvar
+    (setq tool-bar-position 'bottom))
 
   ;; 启动性能优化（启动后由 init-basis 复位）
   (setq gc-cons-threshold most-positive-fixnum

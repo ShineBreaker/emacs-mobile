@@ -34,41 +34,38 @@
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
 (when custom:android-p
-  ;; 底部 tool-bar（拇指可达），tap 任意处可唤出系统虚拟键盘
-  (setq tool-bar-position 'bottom
-        touch-screen-display-keyboard t
+  ;; 触屏选项：tap 任意处可唤出系统虚拟键盘
+  ;; （tool-bar-position 'bottom 在 early-init.el 中设置：仅 frame 创建前生效）
+  (setq touch-screen-display-keyboard t
         touch-screen-preview-select t
         touch-screen-word-select t
         touch-screen-extend-selection t)
+
+  ;; 触屏无菜单交互场景，关闭菜单栏省一行（命令走 tool-bar / M-x）
+  (menu-bar-mode -1)
 
   ;; 初始态：命令态（tool-bar 开、modifier-bar 关）
   (tool-bar-mode 1)
   (modifier-bar-mode -1)
 
-  ;; tool-bar 命令组（flat，顺序即分组：文件│Org│导航│视图）。
-  ;; Android 端按钮以文字标签渲染（图标资产缺失时显示 :label），
-  ;; 具体渲染效果待真机验证（PLAN §15）。
-  (let ((map (make-sparse-keymap)))
-    (tool-bar-add-item "save" 'save-buffer 'save-buffer :label "存")
-    (tool-bar-add-item "undo" 'undo 'undo :label "撤")
-    (tool-bar-add-item "undo" 'undo-redo 'undo-redo :label "重")
-    ;; Org 组：命令由 init-org.el 提供，点击时才解析符号
-    (tool-bar-add-item "new" 'org-capture 'org-capture :label "抓")
-    (tool-bar-add-item "open" 'org-agenda 'org-agenda :label "程")
-    (tool-bar-add-item "jump-to" 'org-roam-node-find 'org-roam-node-find
-                       :label "笔")
-    ;; 导航组
-    (tool-bar-add-item "index" 'consult-buffer 'consult-buffer :label "换")
-    (tool-bar-add-item "search" 'custom/touch-search 'custom/touch-search
-                       :label "搜")
-    ;; 视图组
-    (tool-bar-add-item "zoom-in" 'text-scale-increase 'text-scale-increase
-                       :label "A+")
-    (tool-bar-add-item "zoom-out" 'text-scale-decrease 'text-scale-decrease
-                       :label "A−")
-    (tool-bar-add-item "refresh" 'recenter-top-bottom 'recenter-top-bottom
-                       :label "中")
-    (setq-default tool-bar-map map)))
+  ;; tool-bar 命令组（flat，顺序即分组：文件│Org│导航）。
+  ;; 官方标准写法：直接重置全局 `tool-bar-map' 后逐个 add——
+  ;; `tool-bar-add-item' 操作的就是这个全局 map，不能自造局部 map。
+  ;; 图标只采用 Emacs 内置集合（etc/images）中存在的；
+  ;; zoom-in/zoom-out/refresh/redo 无图标（会渲染空白），故不做按钮：
+  ;; 字号缩放用系统双指手势（Android Emacs 原生调 text-scale）。
+  (setq tool-bar-map (make-sparse-keymap))
+  (tool-bar-add-item "save" 'save-buffer 'save-buffer :label "存")
+  (tool-bar-add-item "undo" 'undo 'undo :label "撤")
+  ;; Org 组：命令由 init-org.el 提供，点击时才解析符号
+  (tool-bar-add-item "new" 'org-capture 'org-capture :label "抓")
+  (tool-bar-add-item "open" 'org-agenda 'org-agenda :label "程")
+  (tool-bar-add-item "jump-to" 'org-roam-node-find 'org-roam-node-find
+                     :label "笔")
+  ;; 导航组
+  (tool-bar-add-item "index" 'consult-buffer 'consult-buffer :label "换")
+  (tool-bar-add-item "search" 'custom/touch-search 'custom/touch-search
+                     :label "搜"))
 
 ;; 桌面：无需工具栏与修饰键栏
 (unless custom:android-p
