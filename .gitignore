@@ -1,1 +1,8 @@
 PLAN.md
+# 生成物与本地状态，不入 git
+straight/
+var/
+eln-cache/
+auto-save-list/
+transient/
+*.elc
