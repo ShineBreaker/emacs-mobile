@@ -5,4 +5,8 @@ var/
 eln-cache/
 auto-save-list/
 transient/
+org/
+org-roam.db
+elfeed/
 *.elc
+\#*\#
