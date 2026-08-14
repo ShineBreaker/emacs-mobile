@@ -107,17 +107,17 @@
 ;; 纯 ASCII：emoji/箭头符号在窄屏 tty 下宽度歧义导致溢出折行。
 (defvar custom/mode-line--bar-switch-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [mode-line mouse-1] #'custom/touch-toggle-input-bar)
+    (define-key map [mode-line mouse-1] #'custom/touch-toggle-modifier-bar)
     map)
   "mode-line 右端切换块的点击 keymap（命令定义于 init-touch.el）。")
 
 (defun custom/mode-line--bar-switch ()
-  "返回底部栏切换指示块；触屏 tap（= mouse-1）切换 tool-bar/modifier-bar。"
+  "返回修饰键栏切换指示块；触屏 tap（= mouse-1）开关 modifier-bar。"
   (propertize
    (if (bound-and-true-p modifier-bar-mode) "[cmd]" "[kbd]")
    'keymap custom/mode-line--bar-switch-map
    'mouse-face 'mode-line-highlight
-   'help-echo "点击切换 命令栏 / 修饰键栏"))
+   'help-echo "点击开关修饰键栏（叠加于命令栏）"))
 
 ;; 触屏场景无新手引导，抑制启动屏
 (setq inhibit-startup-screen t)

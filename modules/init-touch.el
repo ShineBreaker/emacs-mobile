@@ -10,15 +10,15 @@
 
 ;;; Code:
 
-;; ─── 底部栏切换（跨平台） ───────────────────────────────────────────
-
-(defun custom/touch-toggle-input-bar ()
-  "在 tool-bar（命令态）与 modifier-bar（输入态）间互斥切换。"
+;; ─── 修饰键栏切换（跨平台） ─────────────────────────────────────────
+;; modifier-bar 的官方语义是「叠加在常规 tool-bar 旁的小工具栏」
+;; （documentation: "in addition to the regular tool bar"），
+;; 不能与 tool-bar 互斥切换——tool-bar 常显，此处只开关 modifier-bar 叠加。
+(defun custom/touch-toggle-modifier-bar ()
+  "开关 modifier-bar（修饰键栏，叠加于 tool-bar 旁）。"
   (interactive)
   (if (bound-and-true-p modifier-bar-mode)
-      (progn (modifier-bar-mode -1)
-             (tool-bar-mode 1))
-    (tool-bar-mode -1)
+      (modifier-bar-mode -1)
     (modifier-bar-mode 1)))
 
 ;; 搜索入口：rg 可用走 consult-ripgrep，缺失降级 consult-line
@@ -34,8 +34,14 @@
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
 (when custom:android-p
+  ;; 底部 tool-bar（拇指可达）。Emacs 30.2 Android 的正确入口是
+  ;; frame parameter（bug#64174），全局变量 setq 无效；三处同设覆盖
+  ;; 当前 frame 与后续新建 frame，兼容 31+ 的 defcustom 形式。
+  (setq tool-bar-position 'bottom)
+  (set-frame-parameter nil 'tool-bar-position 'bottom)
+  (add-to-list 'default-frame-alist '(tool-bar-position . bottom))
+
   ;; 触屏选项：tap 任意处可唤出系统虚拟键盘
-  ;; （tool-bar-position 'bottom 在 early-init.el 中设置：仅 frame 创建前生效）
   (setq touch-screen-display-keyboard t
         touch-screen-preview-select t
         touch-screen-word-select t
