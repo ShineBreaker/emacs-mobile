@@ -30,6 +30,14 @@ git clone 层面的加速待真机验证后实现（见 PLAN §15）。"
                  (string :tag "代理前缀"))
   :group 'emacs-mobile)
 
+;; 缓存放 git 仓库外（Android: Termux home；桌面: HOME 沙箱），
+;; 避免上游包克隆污染仓库目录、触发全目录安全扫描误报
+(defvar straight-base-dir)
+(setq straight-base-dir
+      (if (eq system-type 'android)
+          "/data/data/com.termux/files/home/.local/share/emacs/"
+        (expand-file-name ".local/share/emacs/" "~")))
+
 ;; 必须在 bootstrap 之前：straight 加载时即读取这些变量，
 ;; 否则 check-for-modifications 按默认值在每次启动跑 mtime find 检查
 (defvar straight-use-package-by-default)
@@ -55,7 +63,7 @@ git clone 层面的加速待真机验证后实现（见 PLAN §15）。"
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el"
-                         user-emacs-directory))
+                         straight-base-dir))
       (bootstrap-version 7)
       ;; 第 3 层：bootstrap 安装脚本 URL 走前缀代理（仅首次下载生效）
       (install-url

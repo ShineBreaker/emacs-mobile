@@ -57,6 +57,12 @@ cp ~/emacs-mobile/early-init.el ~/emacs-mobile/init.el \
 
 加载链路：Emacs home 的 `early-init.el` 探测到 Termux 仓库后重定向 `user-emacs-directory` 并加载仓库版本；`init.el` 的加载位置虽不随重定向变化（Emacs 机制，已实测），但此时 `user-emacs-directory` 已指向仓库，require 的即 Termux 仓库中的 modules。两个入口文件更新后需重新复制。
 
+### 排查
+
+启动报错或行为异常时，先在 Emacs 里执行 `M-x custom/deploy-diagnose`：它会弹出 buffer 列出部署链路各环节状态（Termux home 可访问性、仓库与 modules 存在性、`user-emacs-directory` 重定向结果）并给出结论与修复指引。init 加载失败的报错信息本身也会带根因结论。
+
+straight 包缓存在 Termux home 的 `~/.emacs-mobile-cache/`（不在本仓库内）。
+
 首次启动 straight 自动走镜像装包（耗时数分钟）。org 笔记目录：配置探测 `/storage/emulated/0/Data/Synching/notebook/org/`（拼写待真机确认），存在则使用；不存在则回退 `~/.emacs.d/org/`。
 
 ## 5. org-roam 首次建库

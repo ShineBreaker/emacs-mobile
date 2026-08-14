@@ -1,7 +1,7 @@
 PLAN.md
 
 # 生成物与本地状态，不入 git
-straight/
+# （straight 缓存在仓库外：Android ~/.emacs-mobile-cache/，桌面沙箱 HOME 下）
 var/
 eln-cache/
 auto-save-list/
