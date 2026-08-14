@@ -21,7 +21,7 @@
 (setq load-prefer-newer nil)
 
 (defconst custom:termux-repo
-  "/data/data/com.termux/files/home/emacs-mobile/"
+  "/data/data/com.termux/files/home/.config/emacs/"
   "Termux home 下的完整配置仓库路径（真机部署模型）。")
 
 (if (and (eq system-type 'android)

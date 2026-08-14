@@ -99,6 +99,9 @@
   (custom/org--ensure-directories)
   :custom
   (org-roam-directory custom:org-roam-directory)
+  ;; db 不随 Syncthing 同步（默认会落在 roam 目录内），放缓存区各端独立
+  (org-roam-db-location
+   (expand-file-name ".cache/emacs/org-roam.db" custom:data-home))
   (org-roam-completion-everywhere nil)
   :config
   (org-roam-db-autosync-mode))

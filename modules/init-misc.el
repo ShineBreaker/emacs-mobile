@@ -4,15 +4,10 @@
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:
-;; 持久化状态统一落 var/（不入 git）。savehist 让 vertico 补全历史跨会话。
+;; 持久化状态统一落 custom:var-directory（~/.local/state/emacs，目录
+;; 由 init-basis 定义）。savehist 让 vertico 补全历史跨会话。
 
 ;;; Code:
-
-(defconst custom:var-directory
-  (expand-file-name "var/" user-emacs-directory)
-  "本地状态文件目录。")
-(unless (file-exists-p custom:var-directory)
-  (make-directory custom:var-directory t))
 
 (use-package recentf
   :init

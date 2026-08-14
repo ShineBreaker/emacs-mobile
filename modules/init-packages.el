@@ -30,13 +30,13 @@ git clone 层面的加速待真机验证后实现（见 PLAN §15）。"
                  (string :tag "代理前缀"))
   :group 'emacs-mobile)
 
-;; 缓存放 git 仓库外（Android: Termux home；桌面: HOME 沙箱），
-;; 避免上游包克隆污染仓库目录、触发全目录安全扫描误报
+;; 缓存放 git 仓库外（数据区根见 init-basis 的 custom:data-home），
+;; 避免上游包克隆污染仓库目录、触发全目录安全扫描误报。
+;; 注意：straight 在 base-dir 下自建 straight/ 子目录，故此处只到
+;; ~/.cache/emacs/，最终克隆落点为 ~/.cache/emacs/straight/。
 (defvar straight-base-dir)
 (setq straight-base-dir
-      (if (eq system-type 'android)
-          "/data/data/com.termux/files/home/.local/share/emacs/"
-        (expand-file-name ".local/share/emacs/" "~")))
+      (expand-file-name ".cache/emacs/" custom:data-home))
 
 ;; 必须在 bootstrap 之前：straight 加载时即读取这些变量，
 ;; 否则 check-for-modifications 按默认值在每次启动跑 mtime find 检查

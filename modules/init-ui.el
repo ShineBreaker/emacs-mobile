@@ -30,8 +30,8 @@
   :group 'emacs-mobile)
 
 (defconst custom/color-scheme-state-file
-  (expand-file-name "var/color-scheme-state.el" user-emacs-directory)
-  "颜色方案状态文件路径。")
+  (expand-file-name "color-scheme-state.el" custom:var-directory)
+  "颜色方案状态文件路径（目录由 init-basis 定义）。")
 
 (defvar custom/color-scheme-current-mode nil
   "当前颜色方案模式（\='light 或 \='dark）。")

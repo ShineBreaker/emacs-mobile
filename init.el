@@ -16,10 +16,7 @@
 
 ;;; Code:
 
-(defvar custom:termux-repo
-  "/data/data/com.termux/files/home/.emacs.d/"
-  "Termux home 下的完整配置仓库路径（真机部署模型）。
-与 early-init.el 中保持一致；此处带默认值以兼容旧版 early-init 副本。")
+(defvar custom:termux-repo)  ; 唯一定义在 early-init.el（必然先于本文件运行）
 
 ;; ─── 部署诊断（不依赖 modules，require 失败后仍可用） ─────────────
 
@@ -32,6 +29,8 @@
   (cond
    ((not (eq system-type 'android))
     "桌面环境：无 Termux 部署链路，modules 应在 user-emacs-directory 下。")
+   ((not (boundp 'custom:termux-repo))
+    "early-init.el 副本过旧或缺失（custom:termux-repo 未定义）：\n  重新复制两个入口文件（README §4）。")
    ((not (custom/deploy--termux-home-p))
     (concat "Emacs 无法访问 Termux home（/data/data/com.termux/files/home）：\n"
             "  签名兼容未生效或 Termux 未安装。按 README §2 完成重签流程后重试。"))
@@ -47,7 +46,8 @@
 (defun custom/deploy-diagnose ()
   "弹出 buffer 显示真机部署链路诊断与结论。"
   (interactive)
-  (let ((buf (get-buffer-create "*emacs-mobile 部署诊断*")))
+  (let ((buf (get-buffer-create "*emacs-mobile 部署诊断*"))
+        (repo (and (boundp 'custom:termux-repo) custom:termux-repo)))
     (with-current-buffer buf
       (fundamental-mode)
       (erase-buffer)
@@ -68,9 +68,9 @@ modules 在 load-path:   %s
 %s"
         system-type (window-system)
         user-emacs-directory (or user-init-file "(未记录)")
-        custom:termux-repo
-        (file-directory-p custom:termux-repo)
-        (file-directory-p (expand-file-name "modules" custom:termux-repo))
+        (or repo "(未定义)")
+        (and repo (file-directory-p repo))
+        (and repo (file-directory-p (expand-file-name "modules" repo)))
         (custom/deploy--termux-home-p)
         (file-directory-p "/data/data/com.termux/files/usr/bin")
         (and (member (expand-file-name "modules" user-emacs-directory)
@@ -82,7 +82,8 @@ modules 在 load-path:   %s
 
 ;; ─── 入口：转发或本体 ───────────────────────────────────────────────
 
-(if (and (eq system-type 'android)
+(if (and (boundp 'custom:termux-repo)
+         (eq system-type 'android)
          (file-directory-p (expand-file-name "modules" custom:termux-repo))
          (not (file-equal-p user-emacs-directory custom:termux-repo)))
     ;; user-emacs-directory 未经 early-init 重定向：手动转发

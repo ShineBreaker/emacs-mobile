@@ -15,11 +15,25 @@
 (defconst custom:android-p (eq system-type 'android)
   "是否运行在 Android 原生 Emacs 上。")
 
-;; org 笔记根目录。Android 真机路径（Syncthing 同步）存在则用之，
-;; 拼写待真机确认（PLAN §15）；否则回退本地目录（桌面沙箱可全功能测试）。
+;; 数据区根目录（缓存/状态）：Android 用 Termux home，桌面用 HOME（沙箱隔离）。
+(defconst custom:data-home
+  (if (eq system-type 'android)
+      "/data/data/com.termux/files/home/"
+    (expand-file-name "~/"))
+  "缓存与持久化状态的根目录。")
+
+;; 持久化状态目录（recentf/savehist/saveplace/主题深浅色状态）
+(defconst custom:var-directory
+  (expand-file-name ".local/state/emacs/" custom:data-home)
+  "持久化状态目录。")
+(unless (file-directory-p custom:var-directory)
+  (make-directory custom:var-directory t))
+
+;; org 笔记根目录。Android 真机路径（Syncthing 同步）存在则用之；
+;; 否则回退本地目录（桌面沙箱可全功能测试）。
 (defconst custom:org-directory
-  (if (file-directory-p "/storage/emulated/0/Data/Synching/notebook/org/")
-      "/storage/emulated/0/Data/Synching/notebook/org/"
+  (if (file-directory-p "/storage/emulated/0/Data/Syncthing/notebook/org/")
+      "/storage/emulated/0/Data/Syncthing/notebook/org/"
     (expand-file-name "org/" user-emacs-directory))
   "org 笔记根目录。")
 (defconst custom:org-roam-directory
