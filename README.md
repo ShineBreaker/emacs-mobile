@@ -1,10 +1,10 @@
 # emacs-mobile
 
-Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化配置：以 Org 笔记与阅读为主用途，纯触屏 + `modifier-bar-mode` 交互。
+Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化配置：以 Org 笔记与阅读为主用途，纯触屏交互。
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / Android 适配 / UI / 触屏 / 补全 / Org / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 设计依据见 PLAN.md（不入库）。交互采用「方案 D」：底部单栏，mode-line 右端 `[kbd]` / `[cmd]` 块在 tool-bar（命令态）与 modifier-bar（输入态）间切换。
+> 设计依据见 PLAN.md（不入库）。交互采用「方案 D''」：底部 tool-bar 常显，内容在**命令组**（存/撤/重/抓/程/笔/换/搜/中）与**编辑组**（C/M/S/Tab/RET/Esc/方向键，修饰键经 `event-apply-*-modifier` 点击后对下一个输入生效）间切换，mode-line 右端状态块 tap 切换、编辑组激活时高亮。
 
 ## 1. APK 选择
 
