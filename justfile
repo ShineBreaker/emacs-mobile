@@ -79,7 +79,7 @@ deps: font icons packages
 font:
     #!/usr/bin/env bash
     set -euo pipefail
-    if fc-list :family | grep -qi "maple"; then
+    if command -v fc-list >/dev/null && fc-list :family | grep -qi "maple"; then
         echo "Maple 字体已安装，跳过"
         exit 0
     fi
@@ -114,6 +114,7 @@ icons:
         exit 0
     fi
     command -v rsvg-convert >/dev/null || { echo "需要 rsvg-convert (librsvg)"; exit 1; }
+    command -v fc-list >/dev/null || { echo "需要 fontconfig (fc-list)"; exit 1; }
     fc-list :family | grep -qi "maple" || { echo "先运行 just font 安装字体"; exit 1; }
     mkdir -p data/icons
     tmp=$(mktemp)

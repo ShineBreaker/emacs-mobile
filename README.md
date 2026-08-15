@@ -67,7 +67,7 @@ cp ~/.config/emacs/early-init.el ~/.config/emacs/init.el \
 
 ### 依赖一键补全
 
-Termux 装 just 后（`pkg install just`）在本仓库目录执行：
+Termux 前置依赖：`pkg install just fontconfig`（just 提供 `just` 命令；fontconfig 提供 `fc-list`/`fc-cache`，用于字体检测与缓存刷新）。然后在本仓库目录执行：
 
 ```sh
 just deps    # 字体 → 图标 → 插件预构建，一条命令补全
