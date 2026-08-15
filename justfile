@@ -65,3 +65,81 @@ build tag="" flavor="apt-android-7" abi="universal": tools
 # 清理下载目录
 clean:
     rm -rf download
+
+# ═══ emacs-mobile 配置依赖（字体 / 图标 / 插件预构建）═══
+
+maple-font-url := "https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-NF-CN.zip"
+
+# 一键补全配置侧依赖：字体 → 图标 → 插件预构建
+deps: font icons packages
+
+# 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
+# Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。
+# 安装后需重启 Emacs 生效。
+font:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if fc-list :family | grep -qi "maple"; then
+        echo "Maple 字体已安装，跳过"
+        exit 0
+    fi
+    command -v curl >/dev/null || { echo "需要 curl"; exit 1; }
+    command -v unzip >/dev/null || { echo "需要 unzip"; exit 1; }
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    curl -fsSL --retry 3 --max-time 300 -o "$tmp/maple.zip" "{{maple-font-url}}"
+    unzip -o -q "$tmp/maple.zip" -d "$tmp/font"
+    if [[ -d /data/data/org.gnu.emacs ]]; then
+        dest="/data/data/org.gnu.emacs/files/fonts"
+    else
+        dest="${HOME}/.local/share/fonts"
+    fi
+    mkdir -p "$dest"
+    cp "$tmp"/font/MapleMono-NF-CN-Regular.ttf \
+       "$tmp"/font/MapleMono-NF-CN-Italic.ttf \
+       "$tmp"/font/MapleMono-NF-CN-Bold.ttf "$dest"/
+    fc-cache -f >/dev/null 2>&1 || true
+    echo "字体已安装到 $dest（重启 Emacs 生效）"
+
+# 从 Maple 字体渲染 tool-bar 图标（Nerd Font 字形 → 96px 透明 PNG → data/icons/）。
+# 依赖 rsvg-convert（librsvg）与本机已安装的 Maple 字体。
+icons:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    wanted="save undo redo capture agenda roam buffer search recenter"
+    missing=""
+    for n in $wanted; do [[ -f "data/icons/$n.png" ]] || missing="$missing $n"; done
+    if [[ -z "$missing" ]]; then
+        echo "data/icons/ 图标已齐（随仓库分发），跳过"
+        exit 0
+    fi
+    command -v rsvg-convert >/dev/null || { echo "需要 rsvg-convert (librsvg)"; exit 1; }
+    fc-list :family | grep -qi "maple" || { echo "先运行 just font 安装字体"; exit 1; }
+    mkdir -p data/icons
+    tmp=$(mktemp)
+    trap 'rm -f "$tmp"' EXIT
+    for pair in save F0C7 undo F0E2 redo F01E capture F0E7 \
+                agenda F133 roam F0C1 buffer F0EC search F002 recenter F037; do
+        read -r name cp <<<"$pair"
+        printf '%s\n' \
+            '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">' \
+            '<text x="48" y="48" font-family="Maple Mono NF CN" font-size="66" fill="black" text-anchor="middle" dominant-baseline="central">&#x'"$cp"';</text>' \
+            '</svg>' > "$tmp"
+        rsvg-convert -w 96 -h 96 "$tmp" > "data/icons/$name.png"
+    done
+    echo "图标已生成到 data/icons/"
+
+# 预构建全部 Emacs 插件（跑一遍完整 init，straight 装齐并 byte-compile）。
+# 真机缓存 → ~/.cache/emacs/straight；桌面 → .sandbox/ 下（隔离）。
+packages:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    here=$(pwd)
+    if [[ ! -d /data/data/org.gnu.emacs ]]; then
+        export HOME="$here/.sandbox"
+        mkdir -p "$HOME"
+    fi
+    emacs --batch \
+        --eval "(setq user-emacs-directory \"$here/\")" \
+        -l early-init.el -l init.el
+    echo "全部插件已构建完成"
