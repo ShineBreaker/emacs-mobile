@@ -87,15 +87,20 @@
 (defun custom/bar--setup ()
   "创建工具栏 buffer 并装入底部 side window（1 行高、常驻）。"
   (custom/bar--render)
-  (let ((win (display-buffer-in-side-window
-              (get-buffer custom/bar--buffer-name)
-              '((side . bottom) (window-height . 1) (slot . 0)))))
-    (set-window-parameter win 'no-other-window t)
-    (set-window-parameter win 'no-delete-other-windows t)))
+  (condition-case err
+      (let ((win (display-buffer-in-side-window
+                  (get-buffer custom/bar--buffer-name)
+                  '((side . bottom) (window-height . 1) (slot . 0)))))
+        (set-window-parameter win 'no-other-window t)
+        (set-window-parameter win 'no-delete-other-windows t))
+    (error
+     (message "[mobile-bar] 安装失败: %s" (error-message-string err)))))
 
-;; batch 无 frame 不安装；GUI 与 tty（tmux 排版校验）都显示
+;; batch 无 frame 不安装；GUI 与 tty（tmux 排版校验）都显示。
+;; 用 window-setup-hook（而非 after-init-hook）：它在初始 frame 窗口
+;; 布局完成后触发，after-init 时布局未稳，side window 可能被重置。
 (unless noninteractive
-  (add-hook 'after-init-hook #'custom/bar--setup))
+  (add-hook 'window-setup-hook #'custom/bar--setup))
 
 (provide 'init-bar)
 ;;; init-bar.el ends here
