@@ -9,14 +9,67 @@
 
 ;;; Code:
 
-;; ─── 修饰键：tap 一次性 ─────────────────────────────────────────────
-;; 点按 C/M/S 后下一个输入带修饰（如点 C 再按 a = C-a）。
+;; ─── 修饰键：tap 一次性 + 锁定模式（编辑组行首锁形按钮） ─────────
+;; · tap 一次性（默认）：点 C/M/S 后下一个输入带修饰（点 C 按 a = C-a）。
+;; · 锁定模式（编辑组行首锁形按钮开关）：开启后点 C/M/S 叠加锁定（可多选，
+;;   如 C+M → 键盘输入带 C-M-），被锁按钮高亮；键盘字母经
+;;   key-translation 常驻翻译。锁定集合在序列开头生效——单键双修饰
+;;   组合（C-M-x）可达；C-x 前缀序列中间不翻译（机制边界）。
 ;; 真机实测否决的备选（勿再尝试，除非上游行为变化）：
-;; · 按住式（mouse-1 down/up 事件对 + key-translation 字母翻译）——
-;;   Android 触屏的 mouse-1 在抬手时才合成（down/up 紧邻到达，无
-;;   「按住期间」），长按 0.7s 被系统拖选手势占用（触发 Mark set）。
-;; · key-translation 也只匹配序列开头，C-x 前缀后的字母不翻译——
-;;   C-x C-s 一类前缀式双修饰请用 [存] 等按钮或 M-x 直达。
+;; · 按住式（mouse-1 down/up 对）——Android 触屏的 mouse-1 在抬手时
+;;   才合成（无「按住期间」），长按 0.7s 被系统拖选手势占用（Mark set）。
+
+(defvar custom/touch--lock-mode nil
+  "锁定模式：C/M/S 点按改为叠加锁定修饰。")
+(defvar custom/touch--locked-mods nil
+  "已锁定的修饰符列表（如 (control meta) → 键盘输入带 C-M-）。")
+
+(declare-function custom/bar--render "init-bar")
+
+(defun custom/touch--mod-prefix (mod)
+  "修饰符 MOD 的键前缀字符串。"
+  (pcase mod ('control "C-") ('meta "M-") ('shift "S-")))
+
+(defun custom/touch--lock-chars ()
+  "参与翻译的字符列表（小写字母 + 数字）。"
+  (append "abcdefghijklmnopqrstuvwxyz0123456789" nil))
+
+(defun custom/touch--refresh-lock-translation ()
+  "按当前锁定集合重装字母翻译。"
+  (dolist (c (custom/touch--lock-chars))
+    (define-key key-translation-map (char-to-string c) nil))
+  (when custom/touch--locked-mods
+    (let ((prefix (mapconcat #'custom/touch--mod-prefix
+                             custom/touch--locked-mods "")))
+      (dolist (c (custom/touch--lock-chars))
+        (let ((key-str (char-to-string c)))
+          (define-key key-translation-map key-str
+            (lambda (_prompt)
+              (kbd (concat prefix key-str)))))))))
+
+(defun custom/touch-lock-toggle ()
+  "修饰锁定模式开关：开启后点 C/M/S 叠加锁定，再点本按钮清除关闭。"
+  (interactive)
+  (setq custom/touch--lock-mode (not custom/touch--lock-mode)
+        custom/touch--locked-mods nil)
+  (custom/touch--refresh-lock-translation)
+  (message (if custom/touch--lock-mode
+               "修饰锁定开：点 C/M/S 叠加锁定"
+             "修饰锁定关"))
+  (custom/bar--render))
+
+(defun custom/touch--toggle-lock (mod)
+  "锁定模式下切换修饰符 MOD 的锁定状态。"
+  (if (memq mod custom/touch--locked-mods)
+      (setq custom/touch--locked-mods (delq mod custom/touch--locked-mods))
+    (push mod custom/touch--locked-mods))
+  (custom/touch--refresh-lock-translation)
+  (message "锁定: %s"
+           (if custom/touch--locked-mods
+               (mapconcat #'custom/touch--mod-prefix
+                          custom/touch--locked-mods "")
+             "无"))
+  (custom/bar--render))
 
 (declare-function event-apply-control-modifier "subr")
 (declare-function event-apply-meta-modifier "subr")
@@ -36,19 +89,25 @@ event-apply-*-modifier 官方语义（实验确认）：丢弃参数、内部阻
       (push (aref modified 0) unread-command-events))))
 
 (defun custom/touch-ctrl-modifier ()
-  "下一个输入事件加 Ctrl（点按按钮后再输入）。"
+  "锁定模式下锁定/解锁 Ctrl；否则下一个输入加 Ctrl。"
   (interactive)
-  (custom/touch--one-shot #'event-apply-control-modifier "C"))
+  (if custom/touch--lock-mode
+      (custom/touch--toggle-lock 'control)
+    (custom/touch--one-shot #'event-apply-control-modifier "C")))
 
 (defun custom/touch-meta-modifier ()
-  "下一个输入事件加 Meta（点按按钮后再输入）。"
+  "锁定模式下锁定/解锁 Meta；否则下一个输入加 Meta。"
   (interactive)
-  (custom/touch--one-shot #'event-apply-meta-modifier "M"))
+  (if custom/touch--lock-mode
+      (custom/touch--toggle-lock 'meta)
+    (custom/touch--one-shot #'event-apply-meta-modifier "M")))
 
 (defun custom/touch-shift-modifier ()
-  "下一个输入事件加 Shift（点按按钮后再输入）。"
+  "锁定模式下锁定/解锁 Shift；否则下一个输入加 Shift。"
   (interactive)
-  (custom/touch--one-shot #'event-apply-shift-modifier "S"))
+  (if custom/touch--lock-mode
+      (custom/touch--toggle-lock 'shift)
+    (custom/touch--one-shot #'event-apply-shift-modifier "S")))
 
 ;; 搜索入口：rg 可用走 consult-ripgrep，缺失降级 consult-line
 (declare-function consult-ripgrep "consult")

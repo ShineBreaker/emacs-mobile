@@ -47,8 +47,19 @@
     ("\uF11C" "⌨" custom/bar-toggle-group "切换到编辑组（修饰键/编辑键）"))
   "命令组按钮：高频命令直达。")
 
+;; 修饰按钮 → 锁定模式下的修饰符（高亮判断用，见 custom/bar--face-for）
+(defconst custom/bar--modifier-commands
+  '((custom/touch-ctrl-modifier . control)
+    (custom/touch-meta-modifier . meta)
+    (custom/touch-shift-modifier . shift)))
+
+(defvar custom/touch--lock-mode nil)      ; init-touch.el
+(defvar custom/touch--locked-mods nil)    ; init-touch.el
+
 (defconst custom/bar--edit-buttons
-  '(("C" "C" custom/touch-ctrl-modifier "下一个输入加 Ctrl")
+  '(("\uF023" "锁" custom/touch-lock-toggle
+     "修饰锁定开关：开启后点 C/M/S 叠加锁定（可组合 C-M-），再点清除")
+    ("C" "C" custom/touch-ctrl-modifier "下一个输入加 Ctrl")
     ("M" "M" custom/touch-meta-modifier "下一个输入加 Meta")
     ("S" "S" custom/touch-shift-modifier "下一个输入加 Shift")
     ("\u21E5" "Tab" indent-for-tab-command "缩进/补全")
@@ -59,7 +70,18 @@
     ("\u2193" "↓" next-line "下一行")
     ("\u2192" "→" forward-char "右移一字符")
     ("\uF0C9" "☰" custom/bar-toggle-group "切回命令组"))
-  "编辑组按钮：修饰键 + 编辑键，替代 modifier-bar。")
+  "编辑组按钮：锁定 + 修饰键 + 编辑键，替代 modifier-bar。")
+
+(defun custom/bar--face-for (cmd)
+  "按钮 CMD 的常规 face：锁定模式的锁钮与已锁修饰钮高亮。"
+  (cond
+   ((and (eq cmd 'custom/touch-lock-toggle) custom/touch--lock-mode)
+    'highlight)
+   ((and custom/touch--lock-mode
+         (memq (cdr (assq cmd custom/bar--modifier-commands))
+               custom/touch--locked-mods))
+    'highlight)
+   (t 'default)))
 
 (defun custom/bar--render ()
   "把当前组的按钮渲染进工具栏 buffer。"
@@ -75,6 +97,7 @@
             (insert
              (propertize
               (format " %s " (if gui gui-glyph tty-glyph))
+              'face (custom/bar--face-for cmd)
               'keymap (let ((m (make-sparse-keymap)))
                         (define-key m [mouse-1] cmd)
                         m)

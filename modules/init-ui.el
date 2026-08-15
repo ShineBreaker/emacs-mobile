@@ -123,6 +123,9 @@
 ;; 触屏场景无新手引导，抑制启动屏
 (setq inhibit-startup-screen t)
 
+;; echo area 按需伸缩：多行长消息显示后自动缩回，避免底部空行残留
+(setq resize-mini-windows 'grow-and-shrink)
+
 (defun custom/mode-line--percent ()
   "当前位置百分比（自算：%p/%P 在顶底部会显示 Top/Bottom/All）。"
   (format "%d%%%%"
