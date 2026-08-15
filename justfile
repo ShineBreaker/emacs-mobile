@@ -73,7 +73,9 @@ maple-font-url := "https://github.com/subframe7536/maple-font/releases/download/
 # 一键补全配置侧依赖：字体 → 图标 → 插件预构建
 deps: font icons packages
 
-# 生成 tool-bar 图标（Maple NF 字形 → 56px PNG，随仓库分发；缺失才重建）。
+# 生成 tool-bar 图标（Maple NF 字形 → 72px PNG，随仓库分发；缺失才重建）。
+# 72px 为 2× 超采样资产：显示端 spec :height 36 缩放（整数倍下采样），
+# 比历史 56px 非整数缩放清晰；改显示尺寸不须重新生成（asset=2×display）。
 # 桌面依赖 rsvg-convert（librsvg）与本机 Maple 字体；中灰填充双主题通吃。
 icons:
     #!/usr/bin/env bash
@@ -92,24 +94,25 @@ icons:
     mkdir -p data/icons
     tmp=$(mktemp)
     trap 'rm -f "$tmp"' EXIT
-    # 图标规格：名字 | 码点 | 渲染字号。y=42 为 baseline 下移的光学居中
-    # （dominant-baseline 在 librsvg 不可靠）。同时落 .svg 矢量资产
-    # （真机验证 svg 渲染可用后可切 :type svg，见 PLAN §15）。
+    # 画布 72 / 字号 54（0.75，NF 图标字形方形无降部，比历史 0.71 饱满）
+    # y=54 为 baseline 下移的光学居中（dominant-baseline 在 librsvg 不可靠）。
+    # 同时落 .svg 矢量副本（真机验证 text 渲染后可切 :type svg，见 PLAN §15）。
+    canvas=72; font=54; base=54
     spec=(
-        "modbar &#xF11C; 40"   "save &#xF0C7; 40"    "copy &#xF0C5; 40"
-        "cut &#xF0C4; 40"      "paste &#xF0EA; 40"   "undo &#xF0E2; 40"
-        "redo &#xF01E; 40"     "search &#xF002; 40"  "recenter &#xF037; 40"
-        "theme &#xF042; 40"    "config &#xF013; 40"  "dashboard &#xF021; 40"
+        "modbar &#xF11C;"  "save &#xF0C7;"   "copy &#xF0C5;"
+        "cut &#xF0C4;"     "paste &#xF0EA;"  "undo &#xF0E2;"
+        "redo &#xF01E;"    "search &#xF002;" "recenter &#xF037;"
+        "theme &#xF042;"   "config &#xF013;" "dashboard &#xF021;"
     )
     for item in "${spec[@]}"; do
-        read -r name glyph size <<<"$item"
+        read -r name glyph <<<"$item"
         printf '%s\n' \
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"56\" height=\"56\"><text x=\"28\" y=\"42\" font-family=\"Maple Mono NF CN\" font-size=\"$size\" fill=\"#808080\" text-anchor=\"middle\">$glyph</text></svg>" \
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"$canvas\" height=\"$canvas\"><text x=\"$((canvas/2))\" y=\"$base\" font-family=\"Maple Mono NF CN\" font-size=\"$font\" fill=\"#808080\" text-anchor=\"middle\">$glyph</text></svg>" \
             > "$tmp"
-        rsvg-convert -w 56 -h 56 "$tmp" > "data/icons/$name.png"
+        rsvg-convert -w $canvas -h $canvas "$tmp" > "data/icons/$name.png"
         cp "$tmp" "data/icons/$name.svg"
     done
-    echo "已生成 data/icons/{${wanted// /,}}.png + .svg"
+    echo "已生成 data/icons/{${wanted// /,}}.png + .svg (${canvas}px 2× 超采样)"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。

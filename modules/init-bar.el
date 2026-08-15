@@ -17,12 +17,13 @@
 ;;; Code:
 
 (defcustom custom/bar-icon-height 36
-  "tool-bar 图标显示高度（像素；spec :height 矢量缩放 56px 资产，
-不重新生成 PNG）。真机按体感调整。"
+  "tool-bar 图标显示高度（像素）。资产为 2× 超采样 PNG（72px），
+spec :height 整数倍下采样保清晰；常规调整显示尺寸不须重新生成
+资产。真机按体感调整。"
   :type 'integer
   :group 'emacs-mobile)
 
-(defcustom custom/bar-button-margin 4
+(defcustom custom/bar-button-margin 6
   "tool-bar 按钮边距（触控 padding，像素）。0 视觉最紧凑。"
   :type 'integer
   :group 'emacs-mobile)
