@@ -77,6 +77,10 @@ org-roam 2.3+ 固定 emacsql 内置 sqlite 后端，Android 官方 APK 不可用
 ;;   不会被编译/使用）；与 emacsql 同一仓库，local-repo 同名 → 共享
 ;;   上面的 pin。
 ;; · emacsql-sqlite3：sqlite3 CLI 后端（cireu 维护），实际 db 走它。
+;; · magit-section：org-roam 依赖，MELPA recipe 理论上只取
+;;   magit-section.el，但真机一期缓存曾混入完整 magit（加载后弹
+;;   Emergency：Emacs 30.2 内置 transient 旧于 magit 要求）→ 显式
+;;   锁 files 防镜像 recipe 漂移；已污染的缓存须删除重建（README §4）。
 (defvar straight-recipe-overrides)
 ;; 键须为 profile 名（默认 profile 为 nil，非 :all——本版 straight 按
 ;; straight-profiles 的键查 overrides）
@@ -85,7 +89,10 @@ org-roam 2.3+ 固定 emacsql 内置 sqlite 后端，Android 官方 APK 不可用
                   :type git :host github :repo "magit/emacsql"
                   :files ("emacsql-sqlite.el"))
                  (emacsql-sqlite3
-                  :type git :host github :repo "cireu/emacsql-sqlite3")))))
+                  :type git :host github :repo "cireu/emacsql-sqlite3")
+                 (magit-section
+                  :type git :host github :repo "magit/magit"
+                  :files ("magit-section.el"))))))
 
 (let* ((lockfile (expand-file-name "straight/versions/default.el"
                                    straight-base-dir))

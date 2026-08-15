@@ -106,6 +106,11 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 
 - **安装报 `INSTALL_FAILED_SHARED_USER_INCOMPATIBLE`**：设备上有包占着 `com.termux` 共享用户且签名不同，最常见原因是 **Termux 插件残留**（Termux:API/Widget/Boot/Float 同样声明 `sharedUserId="com.termux"`，只卸主应用不够）。把 Termux 系应用全部卸载（必要时重启手机），再按先 Termux 后 Emacs 的顺序安装。
 - **虚拟键盘遮挡**：tap 任意处唤出（`touch-screen-display-keyboard t`）；键盘与 magit/transient 的冲突已知，本项目未装 magit。
+- **启动弹 `Emergency (magit): Magit requires 'transient' >= 0.13 ...`**：一期旧缓存曾把完整 magit 混入 `magit-section` 的 build（org-roam 的依赖），加载后撞上 Emacs 30.2 内置的旧版 transient。修复（Termux 里执行后重启 Emacs）：
+  ```sh
+  rm -rf ~/.cache/emacs/straight/build/magit-section ~/.cache/emacs/straight/build/magit
+  ```
+  配置已显式锁定 `magit-section` recipe 只取 `magit-section.el`，重建后不会再混入。
 - **后台被杀**：系统设置中锁定后台 / 关闭对 Emacs 的电池优化。
 - **底部栏切换闪动**：方案 D 切换会重算 frame 布局，若真机上明显需迭代。
 
