@@ -138,9 +138,10 @@
   "mode-line 关闭按钮：GUI NF 字形，tty 用 ×。"
   (propertize
    (format " %s " (if (display-graphic-p) "\uF00D" "×"))
-   'local-map (make-mode-line-mouse-map 'mouse-1 #'kill-current-buffer)
+   'local-map (make-mode-line-mouse-map
+               'mouse-1 #'kill-buffer-and-window)
    'mouse-face 'highlight
-   'help-echo "关闭当前 buffer"))
+   'help-echo "关闭当前 buffer 及其窗口"))
 
 (setq-default mode-line-format
               '("%e"

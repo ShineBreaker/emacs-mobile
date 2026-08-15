@@ -4,7 +4,7 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / UI / 触屏 / 工具栏 / 补全 / Org / 仪表盘 / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 设计依据见 PLAN.md（不入库）。交互采用「方案 E」：底部 1 行 side window 字符工具栏（`*mobile-bar*` buffer，隐藏 mode-line），内容在**命令组**（存/撤/重/抓/程/笔/换/搜/中 + 深浅主题/打开配置/仪表盘，尾部按钮溢出后可左右滑动）与**编辑组**（C/M/S/Tab/RET/Esc/方向键；C/M/S 点按后下一个输入带修饰，前缀式双修饰组合如 C-x C-s 请用 [存] 等按钮或 M-x）间切换，组切换按钮固定在首位；GUI 渲染 Maple Nerd 字形，字符大小随字号、前景色随主题。启动显示**仪表盘**（braille 点阵 banner；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。mode-line 行首有**关闭当前 buffer** 按钮（tap 触发）。
+> 设计依据见 PLAN.md（不入库）。交互采用「方案 E」：底部 1 行 side window 字符工具栏（`*mobile-bar*` buffer，隐藏 mode-line），内容在**命令组**（存/撤/重/抓/程/笔/换/搜/中 + 深浅主题/打开配置/仪表盘，尾部按钮溢出后可左右滑动）与**编辑组**（C/M/S/Tab/RET/Esc/方向键；C/M/S 点按后下一个输入带修饰，前缀式双修饰组合如 C-x C-s 请用 [存] 等按钮或 M-x）间切换，组切换按钮固定在首位；GUI 渲染 Maple Nerd 字形，字符大小随字号、前景色随主题。启动显示**仪表盘**（braille 点阵 banner；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。mode-line 行首有**关闭当前 buffer 及其窗口**的按钮（tap 触发；仅剩主窗+工具栏时只关 buffer）。
 
 ## 1. APK 选择
 
