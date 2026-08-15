@@ -120,6 +120,18 @@ which-key 等弹窗开/关触发 frame 重排时，side window 的高度约束
     (when (> (window-height win) 3)       ; 内容 1 行 + 余量
       (fit-window-to-buffer win nil 1))))
 
+(defun custom/bar--protect-delete-window (orig &optional window)
+  "阻止 C-x 0 删除工具栏窗口。
+tap 按钮会把 bar 窗口选中，随后的 delete-window 目标即 bar——
+此时静默跳过（点别的窗口再 C-x 0 不受影响）。"
+  (let ((win (window-normalize-window window)))
+    (unless (eq (window-buffer win)
+                (get-buffer custom/bar--buffer-name))
+      (funcall orig window))))
+
+(advice-add 'delete-window :around
+            #'custom/bar--protect-delete-window)
+
 (add-hook 'window-configuration-change-hook #'custom/bar--ensure-height)
 
 (defun custom/bar--setup ()
