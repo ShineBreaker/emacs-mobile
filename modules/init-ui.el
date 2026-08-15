@@ -132,11 +132,22 @@
           (floor (* 100.0 (point)) (max (point-max) 1))))
 
 ;; 不用 mode-line-front-space：tty 下它渲染为 "-"。
+;; 行首放关闭当前 buffer 按钮（tap=mouse-1，与工具栏同机制；
+;; *mobile-bar* 的 mode-line 为 nil，按钮天然不会出现在工具栏上）。
+(defun custom/mode-line--close-button ()
+  "mode-line 关闭按钮：GUI NF 字形，tty 用 ×。"
+  (propertize
+   (format " %s " (if (display-graphic-p) "\uF00D" "×"))
+   'local-map (make-mode-line-mouse-map 'mouse-1 #'kill-current-buffer)
+   'mouse-face 'highlight
+   'help-echo "关闭当前 buffer"))
+
 (setq-default mode-line-format
               '("%e"
-                " "
+                (:eval (custom/mode-line--close-button))
                 (:eval (if (buffer-modified-p) "●" "·"))
-                " " mode-name
+                " "
+                mode-name
                 "  "
                 (:eval (custom/mode-line--percent))))
 
