@@ -1,25 +1,87 @@
-;;; init-touch.el --- 触屏交互：底部单栏切换 + tool-bar 命令组 -*- lexical-binding: t; -*-
+;;; init-touch.el --- 触屏交互：双组 tool-bar（命令/编辑）切换 -*- lexical-binding: t; -*-
 
 ;; SPDX-FileCopyrightText: 2026 BrokenShine <xchai404@gmail.com>
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:
-;; 方案 D：底部单栏，mode-line 右端 [⇄] 在 tool-bar（命令态）与
-;; modifier-bar（输入态）间互斥切换。切换命令跨平台（mode-line 开关
-;; 依赖它）；tool-bar 命令组与 touch-screen-* 选项 Android 守卫。
+;; 方案 D''（真机迭代结论）：
+;; · tool-bar 常显底部，内容在「命令组」与「编辑组」间切换，
+;;   mode-line 右端状态块（tap）切换。
+;; · modifier-bar 上游固定渲染、尺寸不可配且真机过小，弃用；
+;;   编辑组的修饰键按钮用内置 `event-apply-*-modifier' 实现
+;;   （点击后下一个输入事件自动带修饰符，行为与 modifier-bar 一致）。
+;; · label 置空：Android 工具栏按钮会按 label 文本宽度（随字体放大）
+;;   撑宽按钮，置空后宽度回到图标主导，保证单行。
+;; 图标：Maple Mono NF CN 的 Nerd 字形渲染的 56px PNG（data/icons/，
+;; `just icons` 重建）。
 
 ;;; Code:
 
-;; ─── 修饰键栏切换（跨平台） ─────────────────────────────────────────
-;; modifier-bar 的官方语义是「叠加在常规 tool-bar 旁的小工具栏」
-;; （documentation: "in addition to the regular tool bar"），
-;; 不能与 tool-bar 互斥切换——tool-bar 常显，此处只开关 modifier-bar 叠加。
-(defun custom/touch-toggle-modifier-bar ()
-  "开关 modifier-bar（修饰键栏，叠加于 tool-bar 旁）。"
+;; ─── tool-bar 按钮构造（跨平台定义，仅 Android 使用） ──────────────
+
+(declare-function event-apply-control-modifier "subr")
+(declare-function event-apply-meta-modifier "subr")
+(declare-function event-apply-shift-modifier "subr")
+
+(defun custom/touch--add-button (map key command help icon)
+  "向 MAP 添加按钮：KEY 触发 COMMAND，图标 data/icons/ICON.png。
+label 置空（理由见文件头）。"
+  (define-key map (vector key)
+    `(menu-item "" ,command
+                :help ,help
+                :image ,(find-image
+                         `((:type png :file ,(concat icon ".png")))))))
+
+(defun custom/touch--make-bar (buttons)
+  "由 BUTTONS 构造 tool-bar keymap；每项 (key command help icon)。"
+  (let ((map (make-sparse-keymap)))
+    (dolist (b buttons map)
+      (pcase-let ((`(,key ,command ,help ,icon) b))
+        (custom/touch--add-button map key command help icon)))))
+
+(defconst custom/touch--command-bar
+  (custom/touch--make-bar
+   '((save save-buffer "保存 (C-x C-s)" "save")
+     (undo undo "撤销" "undo")
+     (redo undo-redo "重做" "redo")
+     ;; Org 组：命令由 init-org.el 提供，点击时才解析符号
+     (capture org-capture "快速捕获" "capture")
+     (agenda org-agenda "议程" "agenda")
+     (roam org-roam-node-find "查找/新建 Roam 笔记" "roam")
+     ;; 导航组
+     (buffer consult-buffer "切换缓冲区" "buffer")
+     (search custom/touch-search "搜索（rg 或当前缓冲区）" "search")
+     ;; 视图组
+     (recenter recenter-top-bottom "当前行回中" "recenter")))
+  "命令组工具栏：高频命令直达。")
+
+(defconst custom/touch--edit-bar
+  (custom/touch--make-bar
+   '((c event-apply-control-modifier "下一个输入加 Ctrl" "mod-c")
+     (m event-apply-meta-modifier "下一个输入加 Meta" "mod-m")
+     (s event-apply-shift-modifier "下一个输入加 Shift" "mod-s")
+     (tab indent-for-tab-command "缩进/补全 (Tab)" "tab")
+     (ret newline "换行 (RET)" "ret")
+     (esc keyboard-quit "取消 (ESC)" "esc")
+     (left backward-char "左移一字符" "arrow-left")
+     (up previous-line "上一行" "arrow-up")
+     (down next-line "下一行" "arrow-down")
+     (right forward-char "右移一字符" "arrow-right")))
+  "编辑组工具栏：修饰键 + 编辑键，替代 modifier-bar。")
+
+;; ─── 两组切换（跨平台） ─────────────────────────────────────────────
+
+(defvar custom/touch--edit-bar-active nil
+  "当前 tool-bar 是否显示编辑组。mode-line 状态块读取此变量。")
+
+(defun custom/touch-toggle-input-bar ()
+  "在命令组与编辑组工具栏间切换。"
   (interactive)
-  (if (bound-and-true-p modifier-bar-mode)
-      (modifier-bar-mode -1)
-    (modifier-bar-mode 1)))
+  (setq custom/touch--edit-bar-active (not custom/touch--edit-bar-active)
+        tool-bar-map (if custom/touch--edit-bar-active
+                         custom/touch--edit-bar
+                       custom/touch--command-bar))
+  (force-window-update (selected-frame)))
 
 ;; 搜索入口：rg 可用走 consult-ripgrep，缺失降级 consult-line
 (declare-function consult-ripgrep "consult")
@@ -30,15 +92,6 @@
   (if (executable-find "rg")
       (call-interactively #'consult-ripgrep)
     (call-interactively #'consult-line)))
-
-(defun custom/touch--add-button (key label command help)
-  "向 `tool-bar-map' 添加使用 data/icons/<KEY>.png 图标的按钮。"
-  (define-key tool-bar-map (vector key)
-    `(menu-item ,label ,command
-                :help ,help
-                :image ,(find-image
-                         `((:type png :file ,(concat (symbol-name key)
-                                                     ".png")))))))
 
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
@@ -63,32 +116,16 @@
   ;; 触屏无菜单交互场景，关闭菜单栏省一行（命令走 tool-bar / M-x）
   (menu-bar-mode -1)
 
-  ;; 初始态：命令态（tool-bar 开、modifier-bar 关）
-  (tool-bar-mode 1)
-  (modifier-bar-mode -1)
-
-  ;; tool-bar 命令组（flat，顺序即分组：文件│Org│导航│视图）。
-  ;; 图标：Maple Mono NF CN 的 Nerd 字形渲染的 96px PNG（data/icons/，
-  ;; `just icons` 可重建）。直接重置全局 `tool-bar-map' 后逐个添加
-  ;; ——`tool-bar-add-item' 只认 etc/images 内置图标，自定义 PNG 需手写
-  ;; menu-item 的 :image。
+  ;; 初始态：命令组
   (add-to-list 'image-load-path
                (expand-file-name "data/icons" user-emacs-directory))
-  (setq tool-bar-map (make-sparse-keymap))
-  (custom/touch--add-button 'save "存" #'save-buffer "保存 (C-x C-s)")
-  (custom/touch--add-button 'undo "撤" #'undo "撤销")
-  (custom/touch--add-button 'redo "重" #'undo-redo "重做")
-  ;; Org 组：命令由 init-org.el 提供，点击时才解析符号
-  (custom/touch--add-button 'capture "抓" #'org-capture "快速捕获")
-  (custom/touch--add-button 'agenda "程" #'org-agenda "议程")
-  (custom/touch--add-button 'roam "笔" #'org-roam-node-find "查找/新建 Roam 笔记")
-  ;; 导航组
-  (custom/touch--add-button 'buffer "换" #'consult-buffer "切换缓冲区")
-  (custom/touch--add-button 'search "搜" #'custom/touch-search "搜索（rg 或当前缓冲区）")
-  ;; 视图组
-  (custom/touch--add-button 'recenter "中" #'recenter-top-bottom "当前行回中"))
+  (setq tool-bar-map custom/touch--command-bar)
+  (tool-bar-mode 1)
+  ;; modifier-bar 弃用（尺寸不可配、真机过小），确保关闭
+  (when (fboundp 'modifier-bar-mode)
+    (modifier-bar-mode -1)))
 
-;; 桌面：无需工具栏与修饰键栏
+;; 桌面：无需工具栏
 (unless custom:android-p
   (tool-bar-mode -1))
 

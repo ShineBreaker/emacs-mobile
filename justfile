@@ -108,7 +108,7 @@ font:
 icons:
     #!/usr/bin/env bash
     set -euo pipefail
-    wanted="save undo redo capture agenda roam buffer search recenter"
+    wanted="save undo redo capture agenda roam buffer search recenter mod-c mod-m mod-s tab ret esc arrow-left arrow-up arrow-down arrow-right"
     missing=""
     for n in $wanted; do [[ -f "data/icons/$n.png" ]] || missing="$missing $n"; done
     if [[ -z "$missing" ]]; then
@@ -121,13 +121,21 @@ icons:
     mkdir -p data/icons
     tmp=$(mktemp)
     trap 'rm -f "$tmp"' EXIT
-    for pair in save F0C7 undo F0E2 redo F01E capture F0E7 \
-                agenda F133 roam F0C1 buffer F0EC search F002 recenter F037; do
-        read -r name cp <<<"$pair"
+    # 图标规格：码点或文本 | 渲染字号（字母文本小、符号大）
+    spec=(
+        "save &#xF0C7; 40"    "undo &#xF0E2; 40"    "redo &#xF01E; 40"
+        "capture &#xF0E7; 40" "agenda &#xF133; 40"  "roam &#xF0C1; 40"
+        "buffer &#xF0EC; 40"  "search &#xF002; 40"  "recenter &#xF037; 40"
+        "mod-c C 44"          "mod-m M 44"          "mod-s S 44"
+        "tab &#x21E5; 40"     "ret &#xF138; 40"     "esc ESC 24"
+        "arrow-left &#x2190; 40" "arrow-up &#x2191; 40"
+        "arrow-down &#x2193; 40" "arrow-right &#x2192; 40"
+    )
+    for item in "${spec[@]}"; do
+        read -r name glyph size <<<"$item"
         printf '%s\n' \
-            '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56">' \
-            '<text x="28" y="42" font-family="Maple Mono NF CN" font-size="40" fill="black" text-anchor="middle">&#x'"$cp"';</text>' \
-            '</svg>' > "$tmp"
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"56\" height=\"56\"><text x=\"28\" y=\"42\" font-family=\"Maple Mono NF CN\" font-size=\"$size\" fill=\"black\" text-anchor=\"middle\">$glyph</text></svg>" \
+            > "$tmp"
         rsvg-convert -w 56 -h 56 "$tmp" > "data/icons/$name.png"
     done
     echo "图标已生成到 data/icons/"

@@ -118,26 +118,29 @@
 
 ;; ─── mode-line：极简档 + 底部栏切换开关 ────────────────────────────
 
-;; 切换块语义 = 修饰键栏（modifier-bar）状态指示 + 开关：
-;; 亮（强调 face）= 已开启，普通 = 已关闭，tap 切换。
+;; 切换块语义 = 工具栏组别状态指示 + 切换（命令组/编辑组）：
+;; 亮（强调 face）= 编辑组（修饰键/编辑键），普通 = 命令组，tap 切换。
 ;; GUI 用 NF 字形（U+F11C 键盘，Maple 内置）；tty 无该字形，回退 ASCII。
 (defvar custom/mode-line--bar-switch-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [mode-line mouse-1] #'custom/touch-toggle-modifier-bar)
+    (define-key map [mode-line mouse-1] #'custom/touch-toggle-input-bar)
     map)
   "mode-line 右端切换块的点击 keymap（命令定义于 init-touch.el）。")
 
+(declare-function custom/touch-toggle-input-bar "init-touch")
+(defvar custom/touch--edit-bar-active nil)  ; init-touch.el
+
 (defun custom/mode-line--bar-switch ()
-  "返回修饰键栏状态指示块；触屏 tap（= mouse-1）开关 modifier-bar。"
-  (let* ((on (bound-and-true-p modifier-bar-mode))
-         (glyph (if (display-graphic-p) "\uF11C" (if on "[cmd]" "[kbd]"))))
+  "返回工具栏组别状态指示块；触屏 tap（= mouse-1）切换命令组/编辑组。"
+  (let* ((on (bound-and-true-p custom/touch--edit-bar-active))
+         (glyph (if (display-graphic-p) "\uF11C" (if on "[edit]" "[cmd]"))))
     (propertize
      glyph
      'face (if on 'mode-line-emphasis 'mode-line)
      'keymap custom/mode-line--bar-switch-map
      'mouse-face 'mode-line-highlight
-     'help-echo (if on "修饰键栏已开启，点击关闭"
-                  "点击开启修饰键栏（C/S/M/方向/Tab/RET）"))))
+     'help-echo (if on "编辑组（修饰键/编辑键）已开启，点击切回命令组"
+                  "点击切换到编辑组（C/M/S/Tab/RET/方向）"))))
 
 ;; 触屏场景无新手引导，抑制启动屏
 (setq inhibit-startup-screen t)
