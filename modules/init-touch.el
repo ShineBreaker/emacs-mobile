@@ -17,6 +17,11 @@
 
 ;;; Code:
 
+;; ─── 图标路径（必须在下方 defconst 求值前就位：find-image 即时解析） ──
+
+(add-to-list 'image-load-path
+             (expand-file-name "data/icons" user-emacs-directory))
+
 ;; ─── tool-bar 按钮构造（跨平台定义，仅 Android 使用） ──────────────
 
 (declare-function event-apply-control-modifier "subr")
@@ -52,7 +57,10 @@ label 置空（理由见文件头）。"
      (buffer consult-buffer "切换缓冲区" "buffer")
      (search custom/touch-search "搜索（rg 或当前缓冲区）" "search")
      ;; 视图组
-     (recenter recenter-top-bottom "当前行回中" "recenter")))
+     (recenter recenter-top-bottom "当前行回中" "recenter")
+     ;; 切换到编辑组（主入口在工具栏内，mode-line 状态块为辅）
+     (switch-kbd custom/touch-toggle-input-bar "切换到编辑组（修饰键/编辑键）"
+                 "switch-kbd")))
   "命令组工具栏：高频命令直达。")
 
 (defconst custom/touch--edit-bar
@@ -66,7 +74,9 @@ label 置空（理由见文件头）。"
      (left backward-char "左移一字符" "arrow-left")
      (up previous-line "上一行" "arrow-up")
      (down next-line "下一行" "arrow-down")
-     (right forward-char "右移一字符" "arrow-right")))
+     (right forward-char "右移一字符" "arrow-right")
+     ;; 切回命令组
+     (switch-cmd custom/touch-toggle-input-bar "切回命令组" "switch-cmd")))
   "编辑组工具栏：修饰键 + 编辑键，替代 modifier-bar。")
 
 ;; ─── 两组切换（跨平台） ─────────────────────────────────────────────
@@ -81,6 +91,7 @@ label 置空（理由见文件头）。"
         tool-bar-map (if custom/touch--edit-bar-active
                          custom/touch--edit-bar
                        custom/touch--command-bar))
+  (message "工具栏：%s" (if custom/touch--edit-bar-active "编辑组" "命令组"))
   (force-window-update (selected-frame)))
 
 ;; 搜索入口：rg 可用走 consult-ripgrep，缺失降级 consult-line
@@ -116,9 +127,7 @@ label 置空（理由见文件头）。"
   ;; 触屏无菜单交互场景，关闭菜单栏省一行（命令走 tool-bar / M-x）
   (menu-bar-mode -1)
 
-  ;; 初始态：命令组
-  (add-to-list 'image-load-path
-               (expand-file-name "data/icons" user-emacs-directory))
+  ;; 初始态：命令组（image-load-path 已在文件顶部就位）
   (setq tool-bar-map custom/touch--command-bar)
   (tool-bar-mode 1)
   ;; modifier-bar 弃用（尺寸不可配、真机过小），确保关闭

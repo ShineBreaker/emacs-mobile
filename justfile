@@ -108,7 +108,7 @@ font:
 icons:
     #!/usr/bin/env bash
     set -euo pipefail
-    wanted="save undo redo capture agenda roam buffer search recenter mod-c mod-m mod-s tab ret esc arrow-left arrow-up arrow-down arrow-right"
+    wanted="save undo redo capture agenda roam buffer search recenter mod-c mod-m mod-s tab ret esc arrow-left arrow-up arrow-down arrow-right switch-kbd switch-cmd"
     missing=""
     for n in $wanted; do [[ -f "data/icons/$n.png" ]] || missing="$missing $n"; done
     if [[ -z "$missing" ]]; then
@@ -130,6 +130,7 @@ icons:
         "tab &#x21E5; 40"     "ret &#xF138; 40"     "esc ESC 24"
         "arrow-left &#x2190; 40" "arrow-up &#x2191; 40"
         "arrow-down &#x2193; 40" "arrow-right &#x2192; 40"
+        "switch-kbd &#xF11C; 40" "switch-cmd &#xF0C9; 40"
     )
     for item in "${spec[@]}"; do
         read -r name glyph size <<<"$item"
