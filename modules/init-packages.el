@@ -58,6 +58,48 @@ git clone 层面的加速待真机验证后实现（见 PLAN §15）。"
       straight-recipes-nongnu-elpa-use-mirror t
       straight-recipes-melpa-use-mirror t)
 
+;; ─── 版本 pin：straight versions lockfile ─────────────────────────────
+;; straight recipe 不支持 :commit（官方 README 明示），正规 pin 机制是
+;; versions lockfile——bootstrap 读取，克隆时强制 checkout。
+;; 注意：lockfile 仅在克隆时生效，已存在的旧克隆不会被切换；换版本需
+;; 删除 <cache>/straight/repos/<repo> 后重启（或 M-x straight-thaw-versions）。
+(defconst custom/straight-pinned-versions
+  '(("org-roam" . "69116a4da49448e79ac03aedceeecd9f5ae9b2d4")  ; v2.2.2
+    ("emacsql" . "c1a44076c0e44d5730b67b13c0e741f66f52fc85")  ; 3.1.1（tag 为 annotated，指向此 commit）
+    ("emacsql-sqlite3" . "2113618732665f2112cb932a66c0e89c404d8777"))
+  "锁定的包版本（repo 名 → commit）。
+org-roam 2.3+ 固定 emacsql 内置 sqlite 后端，Android 官方 APK 不可用，
+须与 emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
+
+;; MELPA 已下架 emacsql-sqlite / emacsql-sqlite3 的 recipe（emacsql 4.x
+;; 拆分改名所致），org-roam 2.2.2 的依赖查不到 → 手动注册：
+;; · emacsql-sqlite：org-roam.el 顶层 require（仅加载定义，C 二进制
+;;   不会被编译/使用）；与 emacsql 同一仓库，local-repo 同名 → 共享
+;;   上面的 pin。
+;; · emacsql-sqlite3：sqlite3 CLI 后端（cireu 维护），实际 db 走它。
+(defvar straight-recipe-overrides)
+;; 键须为 profile 名（默认 profile 为 nil，非 :all——本版 straight 按
+;; straight-profiles 的键查 overrides）
+(setq straight-recipe-overrides
+      '((nil . ((emacsql-sqlite
+                  :type git :host github :repo "magit/emacsql"
+                  :files ("emacsql-sqlite.el"))
+                 (emacsql-sqlite3
+                  :type git :host github :repo "cireu/emacsql-sqlite3")))))
+
+(let* ((lockfile (expand-file-name "straight/versions/default.el"
+                                   straight-base-dir))
+       (alist (when (file-exists-p lockfile)
+                (with-temp-buffer
+                  (insert-file-contents lockfile)
+                  (ignore-errors (read (current-buffer)))))))
+  ;; 幂等合入：保留其他包的既有锁定条目
+  (dolist (pin custom/straight-pinned-versions)
+    (setf (alist-get (car pin) alist nil nil #'equal) (cdr pin)))
+  (make-directory (file-name-directory lockfile) t)
+  (with-temp-file lockfile
+    (prin1 alist (current-buffer))))
+
 ;; ─── straight bootstrap ─────────────────────────────────────────────
 
 (defvar bootstrap-version)
