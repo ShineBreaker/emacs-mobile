@@ -18,11 +18,20 @@
 (declare-function event-apply-shift-modifier "subr")
 
 (defun custom/touch--apply-modifier (fn name)
-  "读取下一个输入事件，经 FN 施加修饰符后派发。"
+  "下一个输入事件经 FN 加修饰后派发。
+FN（event-apply-*-modifier）官方语义（实验确认）：丢弃参数事件、
+内部阻塞读取下一个输入、返回修饰后事件的 vector（key sequence，
+为 keymap 绑定设计，返回值由 command loop 执行）。按钮场景走
+command-execute 会丢弃返回值，故取首元素作为单事件放回
+`unread-command-events' 派发（直接 push vector 会报
+\"KEY must be an integer, cons, symbol, or string\"）。
+进入等待前清空排队事件：按钮 tap 残留的鼠标事件（mouse-1-up 等）
+会被内部读取当作修饰目标，产出 C-mouse-1 一类垃圾。"
   (message "%s- 等待输入…" name)
-  (let ((ev (read-event (concat name "-") t)))
-    (when ev
-      (push (funcall fn ev) unread-command-events))))
+  (setq unread-command-events nil)
+  (let ((modified (funcall fn last-input-event)))
+    (when (and (vectorp modified) (> (length modified) 0))
+      (push (aref modified 0) unread-command-events))))
 
 (defun custom/touch-ctrl-modifier ()
   "下一个输入事件加 Ctrl（等价按住 Ctrl）。"
