@@ -4,7 +4,7 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / Android 适配 / UI / 触屏 / 补全 / Org / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 设计依据见 PLAN.md（不入库）。交互采用「方案 E」：底部 1 行 side window 字符工具栏（`*mobile-bar*` buffer，隐藏 mode-line），内容在**命令组**（存/撤/重/抓/程/笔/换/搜/中）与**编辑组**（C/M/S/Tab/RET/Esc/方向键，修饰键点击后对下一个输入生效）间切换，行尾按钮切换；GUI 渲染 Maple Nerd 字形，字符大小随字号、前景色随主题。
+> 设计依据见 PLAN.md（不入库）。交互采用「方案 E」：底部 1 行 side window 字符工具栏（`*mobile-bar*` buffer，隐藏 mode-line），内容在**命令组**（存/撤/重/抓/程/笔/换/搜/中）与**编辑组**（C/M/S/Tab/RET/Esc/方向键；C/M/S 为按住式——按住期间键盘字母带修饰连击，快速点按则仅下一个输入带修饰；前缀式双修饰组合如 C-x C-s 请用 [存] 等按钮或 M-x）间切换，行尾按钮切换；GUI 渲染 Maple Nerd 字形，字符大小随字号、前景色随主题。
 
 ## 1. APK 选择
 

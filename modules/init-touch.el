@@ -9,44 +9,93 @@
 
 ;;; Code:
 
-;; ─── 修饰键命令（编辑组按钮调用） ──────────────────────────────────
-;; event-apply-*-modifier 无 interactive 声明（设计给 keymap 绑定，
-;; 如 C-x @ c），按钮点击走 command-execute 要求 commandp，须包装。
+;; ─── 修饰键：按住式（hold）+ tap 一次性兜底 ────────────────────────
+;; 交互：按住 C/M/S 按钮期间，键盘字母经 `key-translation-map' 带修饰
+;; 派发（如按住 C 连敲 a e = C-a C-e 连击）；抬起解除。快速 tap（期间
+;; 无输入）退化为一次性等待（read-event + 修饰派发）。
+;; 能力边界（机制实测）：key-translation 只匹配按键序列开头——
+;; C-x 前缀后的字母不会被翻译，故 C-x C-s 一类前缀式双修饰组合
+;; 不走修饰按钮（触屏用 [存] 等按钮或 M-x 直达）。
 
+(defvar custom/touch--hold-mod nil
+  "按住中的修饰符（\\='control / \\='meta / \\='shift），nil 表示未按住。")
+(defvar custom/touch--mod-consumed nil
+  "本次按住期间是否已有键盘输入被翻译。")
+
+(defun custom/touch--translate (prefix key-str)
+  "返回翻译函数（单参 PROMPT，key-translation-map 调用约定）：
+将 KEY-STR 翻译为带 PREFIX 修饰的键并标记 consumed。"
+  (lambda (_prompt)
+    (setq custom/touch--mod-consumed t)
+    (kbd (concat prefix key-str))))
+
+(defun custom/touch--hold-chars ()
+  "参与翻译的字符列表（小写字母 + 数字）。"
+  (append "abcdefghijklmnopqrstuvwxyz0123456789" nil))
+
+(defun custom/touch--hold-start (mod prefix name)
+  "按钮按下：安装字符翻译，修饰生效。"
+  (setq custom/touch--hold-mod mod
+        custom/touch--mod-consumed nil)
+  (dolist (c (custom/touch--hold-chars))
+    (let ((key-str (char-to-string c)))
+      (define-key key-translation-map key-str
+        (custom/touch--translate prefix key-str))))
+  (message "%s- 按住中…" name))
+
+(defun custom/touch--hold-clear ()
+  "移除字符翻译。"
+  (dolist (c (custom/touch--hold-chars))
+    (define-key key-translation-map (char-to-string c) nil)))
+
+(defun custom/touch--button-up ()
+  "按钮抬起：解除修饰；期间无输入（纯 tap）则转一次性等待。"
+  (interactive)
+  (let ((mod custom/touch--hold-mod)
+        (consumed custom/touch--mod-consumed))
+    (custom/touch--hold-clear)
+    (setq custom/touch--hold-mod nil)
+    (cond
+     ((not mod) nil)                        ; 非修饰按钮的抬起，无操作
+     (consumed (message "修饰结束"))
+     ;; tap 兜底：一次性修饰（event-apply 语义见下）
+     (t (custom/touch--one-shot mod)))))
+
+;; 一次性修饰（tap 兜底路径）。event-apply-*-modifier 官方语义
+;; （实验确认）：丢弃参数、内部阻塞读下一个输入、返回修饰后事件的
+;; vector（key sequence，为 keymap 绑定设计）。按钮场景返回值被
+;; command-execute 丢弃，故取首元素作为单事件放回派发。
 (declare-function event-apply-control-modifier "subr")
 (declare-function event-apply-meta-modifier "subr")
 (declare-function event-apply-shift-modifier "subr")
 
-(defun custom/touch--apply-modifier (fn name)
-  "下一个输入事件经 FN 加修饰后派发。
-FN（event-apply-*-modifier）官方语义（实验确认）：丢弃参数事件、
-内部阻塞读取下一个输入、返回修饰后事件的 vector（key sequence，
-为 keymap 绑定设计，返回值由 command loop 执行）。按钮场景走
-command-execute 会丢弃返回值，故取首元素作为单事件放回
-`unread-command-events' 派发（直接 push vector 会报
-\"KEY must be an integer, cons, symbol, or string\"）。
-进入等待前清空排队事件：按钮 tap 残留的鼠标事件（mouse-1-up 等）
-会被内部读取当作修饰目标，产出 C-mouse-1 一类垃圾。"
-  (message "%s- 等待输入…" name)
-  (setq unread-command-events nil)
-  (let ((modified (funcall fn last-input-event)))
-    (when (and (vectorp modified) (> (length modified) 0))
-      (push (aref modified 0) unread-command-events))))
+(defun custom/touch--one-shot (mod)
+  "读取下一个输入，加修饰符 MOD 后作为单事件派发。"
+  (let ((fn (pcase mod
+              ('control #'event-apply-control-modifier)
+              ('meta #'event-apply-meta-modifier)
+              ('shift #'event-apply-shift-modifier))))
+    (message "%s- 等待输入…" (upcase (symbol-name mod)))
+    ;; 清掉 tap 残留的鼠标事件，避免被当作修饰目标
+    (setq unread-command-events nil)
+    (let ((modified (funcall fn last-input-event)))
+      (when (and (vectorp modified) (> (length modified) 0))
+        (push (aref modified 0) unread-command-events)))))
 
 (defun custom/touch-ctrl-modifier ()
-  "下一个输入事件加 Ctrl（等价按住 Ctrl）。"
+  "按住：键盘输入带 Ctrl；快速点按则下一个输入带 Ctrl。"
   (interactive)
-  (custom/touch--apply-modifier #'event-apply-control-modifier "C"))
+  (custom/touch--hold-start 'control "C-" "C"))
 
 (defun custom/touch-meta-modifier ()
-  "下一个输入事件加 Meta（等价按住 Meta）。"
+  "按住：键盘输入带 Meta；快速点按则下一个输入带 Meta。"
   (interactive)
-  (custom/touch--apply-modifier #'event-apply-meta-modifier "M"))
+  (custom/touch--hold-start 'meta "M-" "M"))
 
 (defun custom/touch-shift-modifier ()
-  "下一个输入事件加 Shift（等价按住 Shift）。"
+  "按住：键盘输入带 Shift；快速点按则下一个输入带 Shift。"
   (interactive)
-  (custom/touch--apply-modifier #'event-apply-shift-modifier "S"))
+  (custom/touch--hold-start 'shift "S-" "S"))
 
 ;; 搜索入口：rg 可用走 consult-ripgrep，缺失降级 consult-line
 (declare-function consult-ripgrep "consult")
