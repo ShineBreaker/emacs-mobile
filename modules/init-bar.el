@@ -16,6 +16,17 @@
 
 ;;; Code:
 
+(defcustom custom/bar-icon-height 36
+  "tool-bar 图标显示高度（像素；spec :height 矢量缩放 56px 资产，
+不重新生成 PNG）。真机按体感调整。"
+  :type 'integer
+  :group 'emacs-mobile)
+
+(defcustom custom/bar-button-margin 4
+  "tool-bar 按钮边距（触控 padding，像素）。0 视觉最紧凑。"
+  :type 'integer
+  :group 'emacs-mobile)
+
 (defun custom/bar--add-button (key label command help)
   "向 `tool-bar-map' 添加使用 data/icons/<KEY>.png 图标的按钮。"
   (define-key tool-bar-map (vector key)
@@ -23,7 +34,8 @@
                 :help ,help
                 :image ,(find-image
                          `((:type png :file ,(concat (symbol-name key)
-                                                     ".png")))))))
+                                                     ".png")
+                                  :height ,custom/bar-icon-height))))))
 
 (defun custom/bar--install ()
   "安装底部 tool-bar 命令按钮（Android 启动时调用，桌面可手动调用验证）。"
@@ -34,8 +46,8 @@
   (add-to-list 'default-frame-alist '(tool-bar-position . bottom))
 
   ;; 按钮过小是 Android 版已知缺陷（margins 不随屏幕密度缩放），
-  ;; 用边距放大触控面积；真机实测后在此调整数值。
-  (setq tool-bar-button-margin 8)
+  ;; 边距作为触控 padding，与图标高度（custom/bar-icon-height）分别调
+  (setq tool-bar-button-margin custom/bar-button-margin)
 
   ;; image-load-path 须在 find-image 调用前就位（一期教训）
   (add-to-list 'image-load-path

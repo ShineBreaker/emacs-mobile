@@ -93,7 +93,8 @@ icons:
     tmp=$(mktemp)
     trap 'rm -f "$tmp"' EXIT
     # 图标规格：名字 | 码点 | 渲染字号。y=42 为 baseline 下移的光学居中
-    # （dominant-baseline 在 librsvg 不可靠）。
+    # （dominant-baseline 在 librsvg 不可靠）。同时落 .svg 矢量资产
+    # （真机验证 svg 渲染可用后可切 :type svg，见 PLAN §15）。
     spec=(
         "modbar &#xF11C; 40"   "save &#xF0C7; 40"    "copy &#xF0C5; 40"
         "cut &#xF0C4; 40"      "paste &#xF0EA; 40"   "undo &#xF0E2; 40"
@@ -106,8 +107,9 @@ icons:
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"56\" height=\"56\"><text x=\"28\" y=\"42\" font-family=\"Maple Mono NF CN\" font-size=\"$size\" fill=\"#808080\" text-anchor=\"middle\">$glyph</text></svg>" \
             > "$tmp"
         rsvg-convert -w 56 -h 56 "$tmp" > "data/icons/$name.png"
+        cp "$tmp" "data/icons/$name.svg"
     done
-    echo "已生成 data/icons/{${wanted// /,}}.png"
+    echo "已生成 data/icons/{${wanted// /,}}.png + .svg"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。
