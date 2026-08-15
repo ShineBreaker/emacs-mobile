@@ -94,6 +94,32 @@ db 不可用（sqlite3 CLI 缺失 / init-org 未启用 org-roam / 目录为空�
 
 ;; ─── 配置与启动 ─────────────────────────────────────────────────────
 
+;; navigator 按钮行：org/笔记入口从工具栏迁来（2026-08-15 拍板）。
+;; icon 不走 display-icons-p 判断（navigator 直接显示给定字符串），
+;; tty 无 NF 字形故给空串只显文字；action 须 lambda 包装（widget 调用
+;; 带多余参数，直接绑命令 symbol 会 wrong-number-of-arguments）；
+;; 先 require 再调——capture 的模板挂在 with-eval-after-load 上，
+;; autoload 首次触发时函数体可能先于模板设置执行（实测弹 customize）。
+(setq dashboard-navigator-buttons
+      `(((,(if (display-graphic-p) "\uF0E7" "") "抓笔记"
+          "快速捕获"
+          (lambda (&rest _) (require 'org-capture) (org-capture)))
+         (,(if (display-graphic-p) "\uF133" "") "议程"
+          "本周日程"
+          (lambda (&rest _) (require 'org-agenda) (org-agenda)))
+         (,(if (display-graphic-p) "\uF0C1" "") "Roam 笔记"
+          "查找/新建长期笔记"
+          (lambda (&rest _) (org-roam-node-find))))))
+
+;; navigator 不在默认 startupify 列表，显式加在标题后、条目前
+(setq dashboard-startupify-list
+      '(dashboard-insert-banner
+        dashboard-insert-banner-title
+        dashboard-insert-navigator
+        dashboard-insert-init-info
+        dashboard-insert-items
+        dashboard-insert-footer))
+
 (setq dashboard-startup-banner 'logo-braille
       dashboard-banner-logo-title "Welcome to Emacs!"
       dashboard-center-content t

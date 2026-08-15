@@ -52,18 +52,19 @@
 (defconst custom/bar--command-buttons
   '(("\uF11C" "⌨" custom/bar-toggle-group "切换到编辑组（修饰键/编辑键）")
     ("\uF0C7" "存" save-buffer "保存 (C-x C-s)")
+    ("\uF0C5" "复" custom/touch-copy "复制选区/当前行")
+    ("\uF0C4" "剪" custom/touch-cut "剪切选区/当前行")
+    ("\uF0EA" "贴" yank "粘贴 (C-y)")
     ("\uF0E2" "撤" undo "撤销")
     ("\uF01E" "重" undo-redo "重做")
-    ("\uF0E7" "抓" org-capture "快速捕获")
-    ("\uF133" "程" org-agenda "议程")
-    ("\uF0C1" "笔" org-roam-node-find "查找/新建 Roam 笔记")
-    ("\uF0EC" "换" consult-buffer "切换缓冲区")
     ("\uF002" "搜" custom/touch-search "搜索（rg 或当前缓冲区）")
     ("\uF037" "中" recenter-top-bottom "当前行回中")
     ("\uF042" "色" custom/color-scheme-toggle "切换深浅色主题")
     ("\uF013" "配" custom/bar-open-config "打开配置 init.el")
     ("\uF021" "刷" custom/bar-open-dashboard "打开/刷新仪表盘"))
-  "命令组按钮：高频命令直达 + 尾部低频入口。")
+  "命令组按钮：高频命令直达 + 尾部低频入口。
+org/笔记入口（capture/agenda/roam）在仪表盘 navigator；
+切换缓冲区在 mode-line（bar 被选中时 consult 会把目标显示进 bar）。")
 
 ;; 修饰按钮 → 锁定模式下的修饰符（高亮判断用，见 custom/bar--face-for）
 (defconst custom/bar--modifier-commands

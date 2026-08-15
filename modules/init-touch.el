@@ -109,6 +109,27 @@ event-apply-*-modifier 官方语义（实验确认）：丢弃参数、内部阻
       (custom/touch--toggle-lock 'shift)
     (custom/touch--one-shot #'event-apply-shift-modifier "S")))
 
+;; ─── 复制 / 剪切：有选区作用于选区，无选区作用于当前行 ─────────────
+;; 触屏长按拖选产生 region（真机实测），无选区时整行操作更符合触屏直觉。
+
+(defun custom/touch-copy ()
+  "复制：有选区复制选区，否则复制当前行。"
+  (interactive)
+  (let* ((regionp (use-region-p))
+         (beg (if regionp (region-beginning) (line-beginning-position)))
+         (end (if regionp (region-end) (line-end-position))))
+    (copy-region-as-kill beg end)
+    (message "已复制%s" (if regionp "选区" "当前行"))))
+
+(defun custom/touch-cut ()
+  "剪切：有选区剪切选区，否则剪切当前行（连换行整行消失）。"
+  (interactive)
+  (let* ((regionp (use-region-p))
+         (beg (if regionp (region-beginning) (line-beginning-position)))
+         (end (if regionp (region-end) (progn (forward-line 1) (point)))))
+    (kill-region beg end)
+    (message "已剪切%s" (if regionp "选区" "当前行"))))
+
 ;; 搜索入口：rg 可用走 consult-ripgrep，缺失降级 consult-line
 (declare-function consult-ripgrep "consult")
 (declare-function consult-line "consult")
