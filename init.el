@@ -113,12 +113,12 @@ org 目录存在:           %s
 
   (require 'init-basis)
   (require 'init-packages)
-  (require 'init-android)
   (require 'init-ui)
   (require 'init-touch)
   (require 'init-bar)
   (require 'init-completion)
   (require 'init-org)
+  (require 'init-dashboard)
   (require 'init-reading)
   (require 'init-misc))
 

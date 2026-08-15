@@ -7,7 +7,8 @@
 ;; 方案 E（替代 tool-bar 与 mode-line 按钮行，2026-08-15 拍板）：
 ;; · 底部 side window 常驻一个 1 行高的专用 buffer，字符按钮直接渲染
 ;;   （GUI 用 Maple NF 字形，tty 用中文单字标签），tap = mouse-1 触发。
-;; · 内容在命令组与编辑组间切换（切换按钮在行尾）。
+;; · 内容在命令组与编辑组间切换；切换按钮在行首（位置固定、永远可见，
+;;   尾部按钮溢出后左右滑动可达——真机 bar 支持横向滑动）。
 ;; · 该 buffer 隐藏 mode-line（mode-line-format nil）。
 ;; · 相比 tool-bar：无 PNG 管线、按钮跟字体大小、跟主题前景色（暗色
 ;;   主题下 PNG 黑色字形不可见的问题不复存在）、无渲染/派发双注册。
@@ -16,6 +17,18 @@
 
 (defconst custom/bar--buffer-name "*mobile-bar*"
   "工具栏 buffer 名。")
+
+(declare-function dashboard-open "dashboard")
+
+(defun custom/bar-open-config ()
+  "打开配置入口 init.el。"
+  (interactive)
+  (find-file (expand-file-name "init.el" user-emacs-directory)))
+
+(defun custom/bar-open-dashboard ()
+  "打开或刷新仪表盘。"
+  (interactive)
+  (dashboard-open))
 
 (defvar custom/bar--edit-bar-active nil
   "当前是否显示编辑组。")
@@ -34,8 +47,11 @@
         show-trailing-whitespace nil))
 
 ;; 按钮规格：(GUI 字形 | tty 标签 | 命令 | help)。tty 无 NF 字形，用中文。
+;; 组切换按钮固定在首位（位置稳定、永远可见；尾部按钮溢出后真机
+;; 横向滑动可达）。
 (defconst custom/bar--command-buttons
-  '(("\uF0C7" "存" save-buffer "保存 (C-x C-s)")
+  '(("\uF11C" "⌨" custom/bar-toggle-group "切换到编辑组（修饰键/编辑键）")
+    ("\uF0C7" "存" save-buffer "保存 (C-x C-s)")
     ("\uF0E2" "撤" undo "撤销")
     ("\uF01E" "重" undo-redo "重做")
     ("\uF0E7" "抓" org-capture "快速捕获")
@@ -44,8 +60,10 @@
     ("\uF0EC" "换" consult-buffer "切换缓冲区")
     ("\uF002" "搜" custom/touch-search "搜索（rg 或当前缓冲区）")
     ("\uF037" "中" recenter-top-bottom "当前行回中")
-    ("\uF11C" "⌨" custom/bar-toggle-group "切换到编辑组（修饰键/编辑键）"))
-  "命令组按钮：高频命令直达。")
+    ("\uF042" "色" custom/color-scheme-toggle "切换深浅色主题")
+    ("\uF013" "配" custom/bar-open-config "打开配置 init.el")
+    ("\uF021" "刷" custom/bar-open-dashboard "打开/刷新仪表盘"))
+  "命令组按钮：高频命令直达 + 尾部低频入口。")
 
 ;; 修饰按钮 → 锁定模式下的修饰符（高亮判断用，见 custom/bar--face-for）
 (defconst custom/bar--modifier-commands
@@ -57,7 +75,8 @@
 (defvar custom/touch--locked-mods nil)    ; init-touch.el
 
 (defconst custom/bar--edit-buttons
-  '(("\uF023" "锁" custom/touch-lock-toggle
+  '(("\uF0C9" "☰" custom/bar-toggle-group "切回命令组")
+    ("\uF023" "锁" custom/touch-lock-toggle
      "修饰锁定开关：开启后点 C/M/S 叠加锁定（可组合 C-M-），再点清除")
     ("C" "C" custom/touch-ctrl-modifier "下一个输入加 Ctrl")
     ("M" "M" custom/touch-meta-modifier "下一个输入加 Meta")
@@ -68,9 +87,8 @@
     ("\u2190" "←" backward-char "左移一字符")
     ("\u2191" "↑" previous-line "上一行")
     ("\u2193" "↓" next-line "下一行")
-    ("\u2192" "→" forward-char "右移一字符")
-    ("\uF0C9" "☰" custom/bar-toggle-group "切回命令组"))
-  "编辑组按钮：锁定 + 修饰键 + 编辑键，替代 modifier-bar。")
+    ("\u2192" "→" forward-char "右移一字符"))
+  "编辑组按钮：切回 + 锁定 + 修饰键 + 编辑键，替代 modifier-bar。")
 
 (defun custom/bar--face-for (cmd)
   "按钮 CMD 的常规 face：锁定模式的锁钮与已锁修饰钮高亮。"
