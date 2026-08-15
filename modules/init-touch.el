@@ -41,6 +41,10 @@
   (set-frame-parameter nil 'tool-bar-position 'bottom)
   (add-to-list 'default-frame-alist '(tool-bar-position . bottom))
 
+  ;; 按钮过小是 Android 版已知缺陷（margins 不随屏幕密度缩放），
+  ;; 用边距放大触控面积；真机实测后在此调整数值。
+  (setq tool-bar-button-margin 8)
+
   ;; 触屏选项：tap 任意处可唤出系统虚拟键盘
   (setq touch-screen-display-keyboard t
         touch-screen-preview-select t
