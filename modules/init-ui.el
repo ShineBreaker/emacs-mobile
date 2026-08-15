@@ -116,31 +116,9 @@
 
 (setq frame-title-format '(""))
 
-;; ─── mode-line：极简档 + 底部栏切换开关 ────────────────────────────
-
-;; 切换块语义 = 工具栏组别状态指示 + 切换（命令组/编辑组）：
-;; 亮（强调 face）= 编辑组（修饰键/编辑键），普通 = 命令组，tap 切换。
-;; GUI 用 NF 字形（U+F11C 键盘，Maple 内置）；tty 无该字形，回退 ASCII。
-(defvar custom/mode-line--bar-switch-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [mode-line mouse-1] #'custom/touch-toggle-input-bar)
-    map)
-  "mode-line 右端切换块的点击 keymap（命令定义于 init-touch.el）。")
-
-(declare-function custom/touch-toggle-input-bar "init-touch")
-(defvar custom/touch--edit-bar-active nil)  ; init-touch.el
-
-(defun custom/mode-line--bar-switch ()
-  "返回工具栏组别状态指示块；触屏 tap（= mouse-1）切换命令组/编辑组。"
-  (let* ((on (bound-and-true-p custom/touch--edit-bar-active))
-         (glyph (if (display-graphic-p) "\uF11C" (if on "[edit]" "[cmd]"))))
-    (propertize
-     glyph
-     'face (if on 'mode-line-emphasis 'mode-line)
-     'keymap custom/mode-line--bar-switch-map
-     'mouse-face 'mode-line-highlight
-     'help-echo (if on "编辑组（修饰键/编辑键）已开启，点击切回命令组"
-                  "点击切换到编辑组（C/M/S/Tab/RET/方向）"))))
+;; ─── mode-line：极简档 ─────────────────────────────────────────────
+;; 组别切换入口在工具栏内（switch-kbd/switch-cmd 按钮，见 init-touch.el），
+;; mode-line 不再放切换块。
 
 ;; 触屏场景无新手引导，抑制启动屏
 (setq inhibit-startup-screen t)
@@ -151,17 +129,13 @@
           (floor (* 100.0 (point)) (max (point-max) 1))))
 
 ;; 不用 mode-line-front-space：tty 下它渲染为 "-"。
-;; 不用内置 mode-line-format-right-align：其列预算在 tty 下少算 1 列，
-;; 尾部溢出折行；右端块定宽 5 列（[kbd]/[cmd]），自留 6 列预算。
 (setq-default mode-line-format
               '("%e"
                 " "
                 (:eval (if (buffer-modified-p) "●" "·"))
                 " " mode-name
                 "  "
-                (:eval (custom/mode-line--percent))
-                (:eval (propertize " " 'display '(space :align-to (- right 6))))
-                (:eval (custom/mode-line--bar-switch))))
+                (:eval (custom/mode-line--percent))))
 
 (provide 'init-ui)
 ;;; init-ui.el ends here

@@ -106,6 +106,7 @@ modules 在 load-path:   %s
   (require 'init-android)
   (require 'init-ui)
   (require 'init-touch)
+  (require 'init-bar)
   (require 'init-completion)
   (require 'init-org)
   (require 'init-reading)

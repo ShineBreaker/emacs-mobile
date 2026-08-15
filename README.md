@@ -4,7 +4,7 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / Android 适配 / UI / 触屏 / 补全 / Org / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 设计依据见 PLAN.md（不入库）。交互采用「方案 D''」：底部 tool-bar 常显，内容在**命令组**（存/撤/重/抓/程/笔/换/搜/中）与**编辑组**（C/M/S/Tab/RET/Esc/方向键，修饰键经 `event-apply-*-modifier` 点击后对下一个输入生效）间切换，mode-line 右端状态块 tap 切换、编辑组激活时高亮。
+> 设计依据见 PLAN.md（不入库）。交互采用「方案 E」：底部 1 行 side window 字符工具栏（`*mobile-bar*` buffer，隐藏 mode-line），内容在**命令组**（存/撤/重/抓/程/笔/换/搜/中）与**编辑组**（C/M/S/Tab/RET/Esc/方向键，修饰键点击后对下一个输入生效）间切换，行尾按钮切换；GUI 渲染 Maple Nerd 字形，字符大小随字号、前景色随主题。
 
 ## 1. APK 选择
 
@@ -73,8 +73,7 @@ Termux 前置依赖：`pkg install just fontconfig`（just 提供 `just` 命令�
 just deps    # 字体 → 图标 → 插件预构建，一条命令补全
 ```
 
-- `just font`：下载 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（中英等宽 + Nerd 图标）→ Android 装到 Emacs home 的 `fonts/`（sfnt-android 启动时枚举，装后重启 Emacs 生效），桌面装到 fontconfig 用户目录；已装则跳过
-- `just icons`：从 Maple 字体渲染 tool-bar 图标（Nerd 字形 → 96px PNG）；图标资产随仓库分发，已齐则跳过
+- `just font`：下载 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（中英等宽 + Nerd 图标，工具栏字形来源）→ Android 装到 Emacs home 的 `fonts/`（sfnt-android 启动时枚举，装后重启 Emacs 生效），桌面装到 fontconfig 用户目录；已装则跳过
 - `just packages`：跑一遍完整 init 预构建全部插件（真机缓存 `~/.cache/emacs/straight`，桌面 `.sandbox/`）
 
 首次启动 straight 自动走镜像装包（耗时数分钟）。org 笔记目录：配置探测 `/storage/emulated/0/Data/Syncthing/notebook/org/`，存在则使用；不存在则回退 `~/.emacs.d/org/`（桌面沙箱全功能测试用）。
