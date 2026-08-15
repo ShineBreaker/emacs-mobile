@@ -116,7 +116,7 @@
   "强制工具栏窗口保持单行。
 which-key 等弹窗开/关触发 frame 重排时，side window 的高度约束
 可能失效，把 bar 撑出多余空行；此钩子将其压回。"
-  (when-let ((win (get-buffer-window custom/bar--buffer-name)))
+  (when-let* ((win (get-buffer-window custom/bar--buffer-name)))
     (when (> (window-height win) 3)       ; 内容 1 行 + 余量
       (fit-window-to-buffer win nil 1))))
 
