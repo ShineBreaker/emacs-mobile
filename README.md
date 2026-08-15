@@ -65,6 +65,18 @@ cp ~/.config/emacs/early-init.el ~/.config/emacs/init.el \
 
 启动报错或行为异常时，先在 Emacs 里执行 `M-x custom/deploy-diagnose`：它会弹出 buffer 列出部署链路各环节状态（Termux home 可访问性、仓库与 modules 存在性、`user-emacs-directory` 重定向结果）并给出结论与修复指引。init 加载失败的报错信息本身也会带根因结论。
 
+### 依赖一键补全
+
+Termux 装 just 后（`pkg install just`）在本仓库目录执行：
+
+```sh
+just deps    # 字体 → 图标 → 插件预构建，一条命令补全
+```
+
+- `just font`：下载 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（中英等宽 + Nerd 图标）→ Android 装到 Emacs home 的 `fonts/`（sfnt-android 启动时枚举，装后重启 Emacs 生效），桌面装到 fontconfig 用户目录；已装则跳过
+- `just icons`：从 Maple 字体渲染 tool-bar 图标（Nerd 字形 → 96px PNG）；图标资产随仓库分发，已齐则跳过
+- `just packages`：跑一遍完整 init 预构建全部插件（真机缓存 `~/.cache/emacs/straight`，桌面 `.sandbox/`）
+
 首次启动 straight 自动走镜像装包（耗时数分钟）。org 笔记目录：配置探测 `/storage/emulated/0/Data/Syncthing/notebook/org/`，存在则使用；不存在则回退 `~/.emacs.d/org/`（桌面沙箱全功能测试用）。
 
 ## 5. org-roam 首次建库
