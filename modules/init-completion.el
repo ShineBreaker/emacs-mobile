@@ -105,11 +105,9 @@
 
 (use-package which-key
   :custom (which-key-idle-delay 0.6)
-          ;; 弹窗仍在底部（触屏视线近），经 side window slot 机制放在
-          ;; *mobile-bar* 正下方（bar slot 0，which-key slot 1 更靠边框），
-          ;; 不挤压 bar 自身高度
+          ;; 底部弹窗（触屏视线近）；side window bar 已废弃（方案 F），
+          ;; 无叠放约束，slot 走默认
           (which-key-side-window-location 'bottom)
-          (which-key-side-window-slot 1)
   :config
   (custom/which-key-apply-descriptions)
   ;; 延迟到启动完成后开启，避免拖慢 init

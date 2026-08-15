@@ -4,7 +4,7 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / UI / 触屏 / 工具栏 / 补全 / Org / 仪表盘 / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 设计依据见 PLAN.md（不入库）。交互采用「方案 E」：底部 1 行 side window 字符工具栏（`*mobile-bar*` buffer，隐藏 mode-line），**命令组**（存/复/剪/贴/撤/重/搜/中 + 深浅主题/打开配置/仪表盘，复制剪切有选区作用于选区、无选区作用于当前行；尾部按钮溢出后可左右滑动）与**编辑组**（C/M/S/Tab/RET/Esc/方向键；C/M/S 点按后下一个输入带修饰，前缀式双修饰组合如 C-x C-s 请用 [存] 等按钮或 M-x）间切换，组切换按钮固定在首位；GUI 渲染 Maple Nerd 字形，字符大小随字号、前景色随主题。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。mode-line 行首按钮：**✕ 关闭当前 buffer 及其窗口**（仅剩主窗+工具栏时只关 buffer）、**换 切换缓冲区**。
+> 设计依据见 PLAN.md（不入库）。交互回归**官方组件分层**（自实现 side window 工具栏因 tap 会把工具栏 buffer 选中、命令落到工具栏自身而废弃）：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 保存/复制/剪切/粘贴/撤销/重做/搜索/回中/深浅主题/打开配置/仪表盘，图标为 Maple Nerd 字形渲染的 PNG（`just icons` 幂等重建，中灰双主题通吃；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载 buffer/窗口控制——✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）、换 切换缓冲区。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
 
 ## 1. APK 选择
 
@@ -74,6 +74,7 @@ just deps    # 字体 → 图标 → 插件预构建，一条命令补全
 ```
 
 - `just font`：下载 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（中英等宽 + Nerd 图标，工具栏字形来源）→ Android 装到 Emacs home 的 `fonts/`（sfnt-android 启动时枚举，装后重启 Emacs 生效），桌面装到 fontconfig 用户目录；已装则跳过
+- `just icons`：生成 tool-bar 图标（Maple 字形 → 56px PNG，`data/icons/` 已随仓库分发，真机无需执行；缺失时在装有 librsvg `rsvg-convert` 的桌面重建）
 - `just packages`：跑一遍完整 init 预构建全部插件（真机缓存 `~/.cache/emacs/straight`，桌面 `.sandbox/`）
 
 首次启动 straight 自动走镜像装包（耗时数分钟）。org 笔记目录：配置探测 `/storage/emulated/0/Data/Syncthing/notebook/org/`，存在则使用；不存在则回退 `~/.emacs.d/org/`（桌面沙箱全功能测试用）。

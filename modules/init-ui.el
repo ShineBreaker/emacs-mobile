@@ -134,18 +134,14 @@
 ;; 不用 mode-line-front-space：tty 下它渲染为 "-"。
 ;; 行首放关闭当前 buffer 按钮（tap=mouse-1，与工具栏同机制；
 ;; *mobile-bar* 的 mode-line 为 nil，按钮天然不会出现在工具栏上）。
-;; 缓冲区切换放 mode-line 而非 bar：tap bar 按钮后 bar 是选中窗口，
-;; consult 会把目标 buffer 显示进 bar；点 mode-line 则所属窗口被选中，
-;; 目标落在正确窗口。候选排除 *mobile-bar* 本身。
-(defvar custom/bar--buffer-name)          ; 定义在 init-bar.el（require 晚于本文件）
+;; 缓冲区切换放 mode-line：点 mode-line 时所属窗口被选中，
+;; 目标落在正确窗口（buffer/窗口控制是 mode-line 的职责分层）。
 (declare-function consult-buffer "consult")
 
 (defun custom/mode-line-switch-buffer ()
-  "在当前窗口切换缓冲区（排除工具栏 buffer）。"
+  "在当前窗口切换缓冲区。"
   (interactive)
-  (consult-buffer
-   :predicate (lambda (buf)
-                (not (equal (buffer-name buf) custom/bar--buffer-name)))))
+  (consult-buffer))
 
 (defun custom/mode-line--switch-button ()
   "mode-line 缓冲区切换按钮：GUI NF 字形，tty 用「换」。"

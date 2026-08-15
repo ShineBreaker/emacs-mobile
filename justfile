@@ -66,12 +66,48 @@ build tag="" flavor="apt-android-7" abi="universal": tools
 clean:
     rm -rf download
 
-# ═══ emacs-mobile 配置依赖（字体 / 插件预构建）═══
+# ═══ emacs-mobile 配置依赖（字体 / 图标 / 插件预构建）═══
 
 maple-font-url := "https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-NF-CN.zip"
 
-# 一键补全配置侧依赖：字体 → 插件预构建（工具栏为字符按钮，无图标资产）
-deps: font packages
+# 一键补全配置侧依赖：字体 → 图标 → 插件预构建
+deps: font icons packages
+
+# 生成 tool-bar 图标（Maple NF 字形 → 56px PNG，随仓库分发；缺失才重建）。
+# 桌面依赖 rsvg-convert（librsvg）与本机 Maple 字体；中灰填充双主题通吃。
+icons:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    wanted="modbar save copy cut paste undo redo search recenter theme config dashboard"
+    missing=""
+    for n in $wanted; do [[ -f "data/icons/$n.png" ]] || missing="$missing $n"; done
+    if [[ -z "$missing" ]]; then
+        echo "data/icons/ 图标已齐（随仓库分发），跳过"
+        exit 0
+    fi
+    command -v rsvg-convert >/dev/null || { echo "需要 rsvg-convert (librsvg)"; exit 1; }
+    command -v fc-list >/dev/null || { echo "需要 fontconfig (fc-list)"; exit 1; }
+    # 不用 grep -q：-q 命中即退出会让 fc-list 吃 EPIPE，pipefail 下误报
+    fc-list :family | grep -i "maple" >/dev/null || { echo "先运行 just font 安装字体"; exit 1; }
+    mkdir -p data/icons
+    tmp=$(mktemp)
+    trap 'rm -f "$tmp"' EXIT
+    # 图标规格：名字 | 码点 | 渲染字号。y=42 为 baseline 下移的光学居中
+    # （dominant-baseline 在 librsvg 不可靠）。
+    spec=(
+        "modbar &#xF11C; 40"   "save &#xF0C7; 40"    "copy &#xF0C5; 40"
+        "cut &#xF0C4; 40"      "paste &#xF0EA; 40"   "undo &#xF0E2; 40"
+        "redo &#xF01E; 40"     "search &#xF002; 40"  "recenter &#xF037; 40"
+        "theme &#xF042; 40"    "config &#xF013; 40"  "dashboard &#xF021; 40"
+    )
+    for item in "${spec[@]}"; do
+        read -r name glyph size <<<"$item"
+        printf '%s\n' \
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"56\" height=\"56\"><text x=\"28\" y=\"42\" font-family=\"Maple Mono NF CN\" font-size=\"$size\" fill=\"#808080\" text-anchor=\"middle\">$glyph</text></svg>" \
+            > "$tmp"
+        rsvg-convert -w 56 -h 56 "$tmp" > "data/icons/$name.png"
+    done
+    echo "已生成 data/icons/{${wanted// /,}}.png"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。
