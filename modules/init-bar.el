@@ -14,8 +14,6 @@
 
 ;;; Code:
 
-(declare-function custom/touch--button-up "init-touch")
-
 (defconst custom/bar--buffer-name "*mobile-bar*"
   "工具栏 buffer 名。")
 
@@ -64,9 +62,7 @@
   "编辑组按钮：修饰键 + 编辑键，替代 modifier-bar。")
 
 (defun custom/bar--render ()
-  "把当前组的按钮渲染进工具栏 buffer。
-所有按钮同时绑 [mouse-1]（按下）与 [mouse-1-up]（抬起）——修饰键
-按钮的按住语义依赖 down/up 事件对（见 init-touch.el）。"
+  "把当前组的按钮渲染进工具栏 buffer。"
   (let ((gui (display-graphic-p))
         (buttons (if custom/bar--edit-bar-active
                      custom/bar--edit-buttons
@@ -81,8 +77,6 @@
               (format " %s " (if gui gui-glyph tty-glyph))
               'keymap (let ((m (make-sparse-keymap)))
                         (define-key m [mouse-1] cmd)
-                        (define-key m [mouse-1-up]
-                          #'custom/touch--button-up)
                         m)
               'mouse-face 'highlight
               'help-echo help))))
