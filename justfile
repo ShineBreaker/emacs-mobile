@@ -101,7 +101,9 @@ font:
     fc-cache -f >/dev/null 2>&1 || true
     echo "字体已安装到 $dest（重启 Emacs 生效）"
 
-# 从 Maple 字体渲染 tool-bar 图标（Nerd Font 字形 → 96px 透明 PNG → data/icons/）。
+# 从 Maple 字体渲染 tool-bar 图标（Nerd Font 字形 → 72px 透明 PNG → data/icons/）。
+# 72px 保证 9 按钮 + margin 单行放下；y=54 为 baseline 下移的光学居中
+# （dominant-baseline 在 librsvg 中不可靠，字形主体位于 baseline 上方）。
 # 依赖 rsvg-convert（librsvg）与本机已安装的 Maple 字体。
 icons:
     #!/usr/bin/env bash
@@ -123,10 +125,10 @@ icons:
                 agenda F133 roam F0C1 buffer F0EC search F002 recenter F037; do
         read -r name cp <<<"$pair"
         printf '%s\n' \
-            '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">' \
-            '<text x="48" y="48" font-family="Maple Mono NF CN" font-size="66" fill="black" text-anchor="middle" dominant-baseline="central">&#x'"$cp"';</text>' \
+            '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72">' \
+            '<text x="36" y="54" font-family="Maple Mono NF CN" font-size="52" fill="black" text-anchor="middle">&#x'"$cp"';</text>' \
             '</svg>' > "$tmp"
-        rsvg-convert -w 96 -h 96 "$tmp" > "data/icons/$name.png"
+        rsvg-convert -w 72 -h 72 "$tmp" > "data/icons/$name.png"
     done
     echo "图标已生成到 data/icons/"
 

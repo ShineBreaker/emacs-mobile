@@ -110,8 +110,9 @@
 
 ;; ─── mode-line：极简档 + 底部栏切换开关 ────────────────────────────
 
-;; 切换块显示「点击后将切换到的目标态」：kbd = 修饰键盘，cmd = 命令面板。
-;; 纯 ASCII：emoji/箭头符号在窄屏 tty 下宽度歧义导致溢出折行。
+;; 切换块语义 = 修饰键栏（modifier-bar）状态指示 + 开关：
+;; 亮（强调 face）= 已开启，普通 = 已关闭，tap 切换。
+;; GUI 用 NF 字形（U+F11C 键盘，Maple 内置）；tty 无该字形，回退 ASCII。
 (defvar custom/mode-line--bar-switch-map
   (let ((map (make-sparse-keymap)))
     (define-key map [mode-line mouse-1] #'custom/touch-toggle-modifier-bar)
@@ -119,12 +120,16 @@
   "mode-line 右端切换块的点击 keymap（命令定义于 init-touch.el）。")
 
 (defun custom/mode-line--bar-switch ()
-  "返回修饰键栏切换指示块；触屏 tap（= mouse-1）开关 modifier-bar。"
-  (propertize
-   (if (bound-and-true-p modifier-bar-mode) "[cmd]" "[kbd]")
-   'keymap custom/mode-line--bar-switch-map
-   'mouse-face 'mode-line-highlight
-   'help-echo "点击开关修饰键栏（叠加于命令栏）"))
+  "返回修饰键栏状态指示块；触屏 tap（= mouse-1）开关 modifier-bar。"
+  (let* ((on (bound-and-true-p modifier-bar-mode))
+         (glyph (if (display-graphic-p) "\uF11C" (if on "[cmd]" "[kbd]"))))
+    (propertize
+     glyph
+     'face (if on 'mode-line-emphasis 'mode-line)
+     'keymap custom/mode-line--bar-switch-map
+     'mouse-face 'mode-line-highlight
+     'help-echo (if on "修饰键栏已开启，点击关闭"
+                  "点击开启修饰键栏（C/S/M/方向/Tab/RET）"))))
 
 ;; 触屏场景无新手引导，抑制启动屏
 (setq inhibit-startup-screen t)
