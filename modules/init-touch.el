@@ -31,6 +31,15 @@
       (call-interactively #'consult-ripgrep)
     (call-interactively #'consult-line)))
 
+(defun custom/touch--add-button (key label command help)
+  "向 `tool-bar-map' 添加使用 data/icons/<KEY>.png 图标的按钮。"
+  (define-key tool-bar-map (vector key)
+    `(menu-item ,label ,command
+                :help ,help
+                :image ,(find-image
+                         `((:type png :file ,(concat (symbol-name key)
+                                                     ".png")))))))
+
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
 (when custom:android-p
@@ -58,24 +67,26 @@
   (tool-bar-mode 1)
   (modifier-bar-mode -1)
 
-  ;; tool-bar 命令组（flat，顺序即分组：文件│Org│导航）。
-  ;; 官方标准写法：直接重置全局 `tool-bar-map' 后逐个 add——
-  ;; `tool-bar-add-item' 操作的就是这个全局 map，不能自造局部 map。
-  ;; 图标只采用 Emacs 内置集合（etc/images）中存在的；
-  ;; zoom-in/zoom-out/refresh/redo 无图标（会渲染空白），故不做按钮：
-  ;; 字号缩放用系统双指手势（Android Emacs 原生调 text-scale）。
+  ;; tool-bar 命令组（flat，顺序即分组：文件│Org│导航│视图）。
+  ;; 图标：Maple Mono NF CN 的 Nerd 字形渲染的 96px PNG（data/icons/，
+  ;; `just icons` 可重建）。直接重置全局 `tool-bar-map' 后逐个添加
+  ;; ——`tool-bar-add-item' 只认 etc/images 内置图标，自定义 PNG 需手写
+  ;; menu-item 的 :image。
+  (add-to-list 'image-load-path
+               (expand-file-name "data/icons" user-emacs-directory))
   (setq tool-bar-map (make-sparse-keymap))
-  (tool-bar-add-item "save" 'save-buffer 'save-buffer :label "存")
-  (tool-bar-add-item "undo" 'undo 'undo :label "撤")
+  (custom/touch--add-button 'save "存" #'save-buffer "保存 (C-x C-s)")
+  (custom/touch--add-button 'undo "撤" #'undo "撤销")
+  (custom/touch--add-button 'redo "重" #'undo-redo "重做")
   ;; Org 组：命令由 init-org.el 提供，点击时才解析符号
-  (tool-bar-add-item "new" 'org-capture 'org-capture :label "抓")
-  (tool-bar-add-item "open" 'org-agenda 'org-agenda :label "程")
-  (tool-bar-add-item "jump-to" 'org-roam-node-find 'org-roam-node-find
-                     :label "笔")
+  (custom/touch--add-button 'capture "抓" #'org-capture "快速捕获")
+  (custom/touch--add-button 'agenda "程" #'org-agenda "议程")
+  (custom/touch--add-button 'roam "笔" #'org-roam-node-find "查找/新建 Roam 笔记")
   ;; 导航组
-  (tool-bar-add-item "index" 'consult-buffer 'consult-buffer :label "换")
-  (tool-bar-add-item "search" 'custom/touch-search 'custom/touch-search
-                     :label "搜"))
+  (custom/touch--add-button 'buffer "换" #'consult-buffer "切换缓冲区")
+  (custom/touch--add-button 'search "搜" #'custom/touch-search "搜索（rg 或当前缓冲区）")
+  ;; 视图组
+  (custom/touch--add-button 'recenter "中" #'recenter-top-bottom "当前行回中"))
 
 ;; 桌面：无需工具栏与修饰键栏
 (unless custom:android-p

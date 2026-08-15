@@ -11,6 +11,13 @@
 
 ;;; Code:
 
+;; ─── 主字体：Maple Mono NF CN（中英等宽 + Nerd 图标字形） ──────────
+;; Android: ttf 由 `just font' 装到 Emacs home 的 fonts/（sfnt-android 枚举）；
+;; 桌面: fontconfig 已装。tty / 字体未装时 find-font 返回 nil，自动跳过。
+(let ((spec (font-spec :family "Maple Mono NF CN")))
+  (when (find-font spec)
+    (set-face-attribute 'default nil :font spec)))
+
 ;; ─── 主题：ef-themes + 简化深浅色状态机 ─────────────────────────────
 
 (defcustom custom/color-scheme-light-theme 'ef-cyprus
