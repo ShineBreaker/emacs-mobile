@@ -20,6 +20,12 @@
 (defvar custom/bar--edit-bar-active nil
   "当前是否显示编辑组。")
 
+(defcustom custom/bar-font-height 240
+  "工具栏字号（1/10 pt），独立于内容字号——放大按钮触控面积
+而不影响正文。真机试值调整。"
+  :type 'integer
+  :group 'emacs-mobile)
+
 (define-derived-mode custom/bar-mode special-mode "Bar"
   "底部工具栏 buffer 模式。"
   (setq buffer-read-only t
@@ -74,7 +80,6 @@
                         m)
               'mouse-face 'highlight
               'help-echo help))))
-        (custom/bar-mode)
         (goto-char (point-min))))))
 
 (defun custom/bar-toggle-group ()
@@ -85,14 +90,21 @@
   (message "工具栏：%s" (if custom/bar--edit-bar-active "编辑组" "命令组")))
 
 (defun custom/bar--setup ()
-  "创建工具栏 buffer 并装入底部 side window（1 行高、常驻）。"
+  "创建工具栏 buffer 并装入底部 side window（常驻、高度自适应）。"
   (custom/bar--render)
+  (with-current-buffer (get-buffer custom/bar--buffer-name)
+    (custom/bar-mode)
+    ;; buffer 局部字号放大（独立于内容区），窗口行高随之增大
+    (face-remap-add-relative 'default :height custom/bar-font-height))
   (condition-case err
       (let ((win (display-buffer-in-side-window
                   (get-buffer custom/bar--buffer-name)
-                  '((side . bottom) (window-height . 1) (slot . 0)))))
+                  '((side . bottom)
+                    (window-height . fit-window-to-buffer)
+                    (slot . 0)))))
         (set-window-parameter win 'no-other-window t)
-        (set-window-parameter win 'no-delete-other-windows t))
+        (set-window-parameter win 'no-delete-other-windows t)
+        (fit-window-to-buffer win nil 1))
     (error
      (message "[mobile-bar] 安装失败: %s" (error-message-string err)))))
 
