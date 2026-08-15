@@ -105,9 +105,10 @@
 
 (use-package which-key
   :custom (which-key-idle-delay 0.6)
-          ;; 弹窗放顶部：默认底部开窗会与 *mobile-bar* 的底部 side
-          ;; window 挤压竞争，导致工具栏错位与底部空行残留
-          (which-key-side-window-location 'top)
+          ;; 弹窗仍在底部（触屏视线近），经 side window slot 机制放在
+          ;; *mobile-bar* 正上方（slot 越小越靠内侧），不与它竞争
+          (which-key-side-window-location 'bottom)
+          (which-key-side-window-slot -1)
   :config
   (custom/which-key-apply-descriptions)
   ;; 延迟到启动完成后开启，避免拖慢 init

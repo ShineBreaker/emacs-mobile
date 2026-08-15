@@ -112,6 +112,16 @@
   (custom/bar--render)
   (message "工具栏：%s" (if custom/bar--edit-bar-active "编辑组" "命令组")))
 
+(defun custom/bar--ensure-height ()
+  "强制工具栏窗口保持单行。
+which-key 等弹窗开/关触发 frame 重排时，side window 的高度约束
+可能失效，把 bar 撑出多余空行；此钩子将其压回。"
+  (when-let ((win (get-buffer-window custom/bar--buffer-name)))
+    (when (> (window-height win) 3)       ; 内容 1 行 + 余量
+      (fit-window-to-buffer win nil 1))))
+
+(add-hook 'window-configuration-change-hook #'custom/bar--ensure-height)
+
 (defun custom/bar--setup ()
   "创建工具栏 buffer 并装入底部 side window（常驻、高度自适应）。"
   (custom/bar--render)
