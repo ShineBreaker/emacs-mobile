@@ -14,9 +14,17 @@
 ;; ─── 主字体：Maple Mono NF CN（中英等宽 + Nerd 图标字形） ──────────
 ;; Android: ttf 由 `just font' 装到 Emacs home 的 fonts/（sfnt-android 枚举）；
 ;; 桌面: fontconfig 已装。tty / 字体未装时 find-font 返回 nil，自动跳过。
+;; 字号加大（16pt 起）：同时改善 modifier-bar 按钮的触控大小（其尺寸
+;; 随 frame 字体，无独立配置项）；真机试值调整 custom/default-font-height。
+(defcustom custom/default-font-height 160
+  "默认字号（1/10 pt）。加大可同步放大 modifier-bar 按钮。"
+  :type 'integer
+  :group 'emacs-mobile)
+
 (let ((spec (font-spec :family "Maple Mono NF CN")))
-  (when (find-font spec)
-    (set-face-attribute 'default nil :font spec)))
+  (when (and (display-graphic-p) (find-font spec))
+    (set-face-attribute 'default nil :font spec
+                        :height custom/default-font-height)))
 
 ;; ─── 主题：ef-themes + 简化深浅色状态机 ─────────────────────────────
 
