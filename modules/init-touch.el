@@ -162,12 +162,15 @@ dashboard）在 setq-default 前已持有 ~，按钮侧显式绑定才可靠。"
   (menu-bar-mode -1)
 
   ;; 修饰键交官方 modifier-bar，默认开（tool-bar 首位按钮可开关）；
-  ;; 每次开启后追加 Tab/ESC 自定义按钮（mode 会重置 map）
+  ;; 每次开启后追加 Tab/ESC 自定义按钮（mode 会重置 map）。
+  ;; setup 依赖 init-bar 的 custom/bar--svg-image，而本模块先于
+  ;; init-bar 加载，须延迟到其加载后执行
   (when (fboundp 'modifier-bar-mode)
     (modifier-bar-mode 1)
     (advice-add 'modifier-bar-mode :after
                 (lambda (&rest _) (custom/modbar--setup)))
-    (custom/modbar--setup)))
+    (with-eval-after-load 'init-bar
+      (custom/modbar--setup))))
 
 (provide 'init-touch)
 ;;; init-touch.el ends here
