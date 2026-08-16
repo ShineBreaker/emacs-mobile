@@ -4,7 +4,7 @@
 #
 # 触发:
 #   - workflow_dispatch: 手动触发，可指定上游 tag / flavor / ABI，可强制重建同名 release
-#   - schedule: 每天检查一次上游新预览版，已发布过的版本自动跳过
+#   - schedule: 每周检查一次上游新预览版，已发布过的版本直接跳过（连下载都省）
 #
 # 无需配置任何 Secrets：签名密钥本身是 Emacs 官方公开的（assets/emacs.keystore），
 # 发布使用内置 GITHUB_TOKEN。
@@ -32,8 +32,9 @@ on:
         required: false
         default: false
   schedule:
-    # 每天 UTC 18:30（北京时间 02:30）检查；无需自动时删除这两行
-    - cron: "30 18 * * *"
+    # 每周日 UTC 18:30（北京时间周一 02:30）检查；上游预览版更新不快，无需每天跑。
+    # 该版本若已发布过则直接跳过（先解析版本、已发布就不下载）。无需自动时删除这两行
+    - cron: "30 18 * * 0"
 
 permissions:
   contents: write
@@ -55,15 +56,15 @@ jobs:
           yes | sdkmanager --install "build-tools;34.0.0" >/dev/null
           echo "$ANDROID_HOME/build-tools/34.0.0" >> "$GITHUB_PATH"
 
-      - name: 抓取上游预览版 APK
-        id: fetch
+      - name: 解析上游最新预览版（不下载）
+        id: probe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IN_TAG: ${{ inputs.tag }}
           IN_FLAVOR: ${{ inputs.flavor }}
           IN_ABI: ${{ inputs.abi }}
         run: |
-          args=(-o download)
+          args=(-o download -c)
           [[ -n "$IN_TAG" ]] && args+=(-t "$IN_TAG")
           [[ -n "$IN_FLAVOR" ]] && args+=(-f "$IN_FLAVOR")
           [[ -n "$IN_ABI" ]] && args+=(-a "$IN_ABI")
@@ -73,7 +74,7 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.fetch.outputs.tag }}
+          TAG: ${{ steps.probe.outputs.tag }}
           FORCE: ${{ inputs.force }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
@@ -82,9 +83,23 @@ jobs:
               gh release delete "$TAG" --yes --cleanup-tag
             else
               echo "skip=true" >> "$GITHUB_OUTPUT"
-              echo "release $TAG 已存在，跳过（手动触发可勾选 force 强制重建）"
+              echo "release $TAG 已存在，跳过（连下载都省；手动触发可勾选 force 强制重建）"
             fi
           fi
+
+      - name: 下载并校验上游 APK
+        if: steps.check.outputs.skip != 'true'
+        id: fetch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IN_TAG: ${{ steps.probe.outputs.tag }}
+          IN_FLAVOR: ${{ inputs.flavor }}
+          IN_ABI: ${{ inputs.abi }}
+        run: |
+          args=(-o download -t "$IN_TAG")
+          [[ -n "$IN_FLAVOR" ]] && args+=(-f "$IN_FLAVOR")
+          [[ -n "$IN_ABI" ]] && args+=(-a "$IN_ABI")
+          scripts/fetch-termux-prerelease.sh "${args[@]}"
 
       - name: 用 Emacs 构建密钥重签
         if: steps.check.outputs.skip != 'true'

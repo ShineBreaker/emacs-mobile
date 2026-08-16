@@ -16,7 +16,7 @@ termux 版 Emacs 在 `https://ftp.gnu.org/gnu/emacs/android/termux/`（国内镜
 
 获取与 Emacs 同签名的 Termux，按省事程度：
 
-1. **本仓库流水线产物（推荐）**：到 [Releases](../../releases) 下载最新 `*-emacs-signed.apk`。GitHub Action 每日自动抓取 [termux/termux-app](https://github.com/termux/termux-app) 预览版，经官方 sha256 校验后用 Emacs 公开构建密钥（`assets/emacs.keystore`）重签、断言证书指纹再发布，无需配置任何 Secrets。没有所需版本时到 Actions 页手动触发 _Resign Termux prerelease_（可选 tag/flavor/abi/force），或本地一条龙：
+1. **本仓库流水线产物（推荐）**：到 [Releases](../../releases) 下载最新 `*-emacs-signed.apk`。GitHub Action 每周自动检查 [termux/termux-app](https://github.com/termux/termux-app) 预览版，经官方 sha256 校验后用 Emacs 公开构建密钥（`assets/emacs.keystore`）重签、断言证书指纹再发布（已发布过的版本直接跳过），无需配置任何 Secrets。没有所需版本时到 Actions 页手动触发 _Resign Termux prerelease_（可选 tag/flavor/abi/force），或本地一条龙：
 
    ```sh
    just termux  # 自动准备 apksigner → 抓最新预览版 → 校验 → 重签，产物在 download/
@@ -35,7 +35,7 @@ termux 版 Emacs 在 `https://ftp.gnu.org/gnu/emacs/android/termux/`（国内镜
 3. **再**装 GNU termux 目录的 Emacs APK（顺序不能反）
 4. 打开 Termux 执行 `pkg update && pkg upgrade`，之后 `pkg install git` 等即可在 Emacs 内使用
 
-升级注意：重签版签名与官方不同，无法从 F-Droid/Play 覆盖升级，只能用新版本 APK 重签后覆盖安装（本仓库流水线每日跟进上游预览版）。
+升级注意：重签版签名与官方不同，无法从 F-Droid/Play 覆盖升级，只能用新版本 APK 重签后覆盖安装（本仓库流水线每周跟进上游预览版，已发布版本自动跳过）。
 
 装好后在 Emacs 侧无需额外配置：本配置 `early-init.el` 已按官方建议把 `/data/data/com.termux/files/usr/bin` 注入 `PATH`/`exec-path`。**不要设置 `LD_LIBRARY_PATH`**（官方 README 明确旧 FAQ 的该建议是错的，会导致系统库与 Termux 库冲突）。上述流程未在本机真机实测，装完后按 §7 清单验证。
 
