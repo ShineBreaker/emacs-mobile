@@ -53,6 +53,12 @@
   "本次 Roam capture 的标题。")
 
 (defvar org-capture-templates nil)  ; org-capture.el（模板在其加载后设置）
+(declare-function org-agenda-files "org-agenda")
+
+(defun custom/org-capture--agenda-file ()
+  "返回本次 capture 的目标 agenda 文件（取 `org-agenda-files' 首项）。"
+  (custom/org--ensure-directories)
+  (car (org-agenda-files)))
 
 (defun custom/org-capture--roam-file ()
   "返回本次长期笔记的 Roam 文件路径。"
@@ -76,13 +82,13 @@
            (file ,custom:org-inbox-file)
            "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%i\n")
           ("kt" "任务 (agenda)" entry
-           (file ,(expand-file-name "agenda/agenda.org" custom:org-directory))
+           (file custom/org-capture--agenda-file)
            "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%i\n")
           ("kd" "带日期任务 (agenda)" entry
-           (file ,(expand-file-name "agenda/agenda.org" custom:org-directory))
+           (file custom/org-capture--agenda-file)
            "* TODO %?\nSCHEDULED: %^t\n:PROPERTIES:\n:CREATED: %U\n:END:\n%i\n")
           ("ke" "日程事件 (agenda)" entry
-           (file ,(expand-file-name "agenda/agenda.org" custom:org-directory))
+           (file custom/org-capture--agenda-file)
            "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%i\n")
           ("kr" "Roam 长期笔记" plain
            (file custom/org-capture--roam-file)
