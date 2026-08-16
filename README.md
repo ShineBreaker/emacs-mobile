@@ -19,7 +19,7 @@ termux 版 Emacs 在 `https://ftp.gnu.org/gnu/emacs/android/termux/`（国内镜
 1. **本仓库流水线产物（推荐）**：到 [Releases](../../releases) 下载最新 `*-emacs-signed.apk`。GitHub Action 每日自动抓取 [termux/termux-app](https://github.com/termux/termux-app) 预览版，经官方 sha256 校验后用 Emacs 公开构建密钥（`assets/emacs.keystore`）重签、断言证书指纹再发布，无需配置任何 Secrets。没有所需版本时到 Actions 页手动触发 _Resign Termux prerelease_（可选 tag/flavor/abi/force），或本地一条龙：
 
    ```sh
-   just build    # 自动准备 apksigner → 抓最新预览版 → 校验 → 重签，产物在 download/
+   just termux  # 自动准备 apksigner → 抓最新预览版 → 校验 → 重签，产物在 download/
    ```
 
    细节见 [docs/00-workflow.md](docs/00-workflow.md) 与 [docs/03-github-action.md](docs/03-github-action.md)。
@@ -67,12 +67,13 @@ cp ~/.config/emacs/early-init.el ~/.config/emacs/init.el \
 
 ### 依赖一键补全
 
-Termux 前置依赖：`pkg install just fontconfig`（just 提供 `just` 命令；fontconfig 提供 `fc-list`/`fc-cache`，用于字体检测与缓存刷新）。然后在本仓库目录执行：
+先装 Termux 基础依赖：`pkg install git`（clone 仓库用）。然后在本仓库目录执行 `just emacs`，一键补全全部配置侧依赖（Termux 包 → 字体 → 图标 → 插件预构建）；其中 `just termux-deps` 单独负责 Termux 包安装（桌面环境自动跳过）：
 
 ```sh
-just deps    # 字体 → 图标 → 插件预构建，一条命令补全
+just emacs    # termux-deps → font → icons → packages，一条命令补全
 ```
 
+- `just termux-deps`：Termux 里安装配置侧依赖包 `curl unzip fontconfig emacs git sqlite ripgrep`（包名已按 termux-packages 源核实；curl/sqlite 为 libcurl/libsqlite 子包，sqlite3 无独立包）
 - `just font`：下载 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（中英等宽主字体）→ Android 装到 Emacs home 的 `fonts/`（sfnt-android 启动时枚举，装后重启 Emacs 生效），桌面装到 fontconfig 用户目录；已装则跳过
 - `just icons`：生成 tool-bar 图标（Papirus symbolic SVG + 72px PNG 兜底，`data/icons/` 已随仓库分发，真机无需执行；缺失时在装有 librsvg `rsvg-convert` 的桌面重建）
 - `just packages`：跑一遍完整 init 预构建全部插件（真机缓存 `~/.cache/emacs/straight`，桌面 `.sandbox/`）

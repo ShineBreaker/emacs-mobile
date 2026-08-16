@@ -11,6 +11,7 @@ default:
     @just --list
 
 # 一次性准备 apksigner：下载 build-tools 34 并提取 apksigner.jar（临时下载约 60MB）
+[group('APK 构建')]
 tools:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -29,6 +30,7 @@ tools:
     java -jar tools/apksigner.jar --version
 
 # 抓取上游预览版 APK 到 download/ 并校验 sha256（本地已有且校验通过则跳过下载）
+[group('APK 构建')]
 fetch tag="" flavor="apt-android-7" abi="universal":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -37,6 +39,7 @@ fetch tag="" flavor="apt-android-7" abi="universal":
     scripts/fetch-termux-prerelease.sh "${args[@]}"
 
 # 用 Emacs 构建密钥重签 APK 并断言证书指纹（缺省自动选 download/ 下最新的未签名 APK）
+[group('APK 构建')]
 resign apk="": tools
     #!/usr/bin/env bash
     set -euo pipefail
@@ -51,7 +54,8 @@ resign apk="": tools
     APKSIGNER="{{apksigner_cmd}}" scripts/resign-apk.sh "$target"
 
 # 抓取 + 重签一条龙（参数同 fetch；产物为 download/ 下 *-emacs-signed.apk）
-build tag="" flavor="apt-android-7" abi="universal": tools
+[group('APK 构建')]
+termux tag="" flavor="apt-android-7" abi="universal": tools
     #!/usr/bin/env bash
     set -euo pipefail
     args=(-o download -f "{{flavor}}" -a "{{abi}}")
@@ -63,6 +67,7 @@ build tag="" flavor="apt-android-7" abi="universal": tools
     echo "==> 产物: ${apk%.apk}-emacs-signed.apk"
 
 # 清理下载目录
+[group('APK 构建')]
 clean:
     rm -rf download
 
@@ -70,14 +75,25 @@ clean:
 
 maple-font-url := "https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-NF-CN.zip"
 
-# 一键补全配置侧依赖：字体 → 图标 → 插件预构建
-deps: font icons packages
+# 一键补全配置侧依赖：Termux 包 → 字体 → 图标 → 插件预构建
+[group('配置依赖')]
+emacs: termux-deps font icons packages
+
+# Termux 环境一键安装配置侧依赖包（桌面自动跳过）。
+# 包名经 termux-packages 源核实：curl/sqlite 为 libcurl/libsqlite 子包，sqlite3 无独立包
+[group('配置依赖')]
+termux-deps:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v pkg >/dev/null || { echo "非 Termux 环境，跳过包安装"; exit 0; }
+    pkg install -y curl unzip fontconfig emacs git sqlite ripgrep
 
 # 生成 tool-bar 图标（Papirus symbolic 矢量，随仓库分发；缺失才重建）。
 # SVG 直渲 + 运行端按主题重着色（见 init-bar.el）；PNG 为 2× 超采样中灰
 # 兜底（无 librsvg 的构建）。桌面依赖 rsvg-convert；来源与许可见
 # data/icons/README.md。
 papirus_tag := "20260801"
+[group('配置依赖')]
 icons:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -173,6 +189,7 @@ icons:
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。
 # 安装后需重启 Emacs 生效。
+[group('配置依赖')]
 font:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -200,6 +217,7 @@ font:
 
 # 预构建全部 Emacs 插件（跑一遍完整 init，straight 装齐并 byte-compile）。
 # 真机缓存 → ~/.cache/emacs/straight；桌面 → .sandbox/ 下（隔离）。
+[group('配置依赖')]
 packages:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -212,3 +230,13 @@ packages:
         --eval "(setq user-emacs-directory \"$here/\")" \
         -l early-init.el -l init.el
     echo "全部插件已构建完成"
+
+# 清理编译产物与本地缓存：仓库内 *.elc、eln-cache/ 与桌面沙箱 .sandbox/
+# （真机 modules/ 下也会留下 .elc；重建：重跑 just packages）
+[group('配置依赖')]
+clean-junk:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    find . -path ./.git -prune -o -name '*.elc' -type f -delete
+    rm -rf eln-cache .sandbox
+    echo "已清理 *.elc、eln-cache/、.sandbox/"

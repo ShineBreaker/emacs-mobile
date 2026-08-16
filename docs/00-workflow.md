@@ -10,7 +10,7 @@
 没有所需版本时，在 Actions 页手动触发 _Resign Termux prerelease_ 工作流（无需任何 Secrets 配置），或本地用 `just` 一条龙（详见 [docs/03-github-action.md](docs/03-github-action.md)）：
 
 ```sh
-just build    # 自动准备 apksigner → 抓最新预览版 → 校验 → 重签，产物在 download/
+just termux  # 自动准备 apksigner → 抓最新预览版 → 校验 → 重签，产物在 download/
 ```
 
 依赖齐全的环境开箱即用（Guix 实测通过）；缺依赖时可在容器中运行（如 `distrobox enter my-distrobox`），已装 Android SDK 的系统可 `export APKSIGNER=apksigner`。
@@ -25,7 +25,7 @@ docs/                              # 整理自 ref/ 原始资料的规范文档�
 scripts/
 ├── fetch-termux-prerelease.sh     # 抓取上游预览版 APK + sha256 校验
 └── resign-apk.sh                  # Emacs 密钥重签 + 证书指纹断言
-justfile                           # 本地命令包装（tools/fetch/resign/build/clean）
+justfile                           # 本地命令包装（tools/fetch/resign/termux/clean）
 assets/
 └── emacs.keystore                 # Emacs 官方公开构建密钥（PKCS12，密码 emacs1）
 .github/workflows/

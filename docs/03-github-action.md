@@ -35,13 +35,13 @@ Actions 页面 → _Resign Termux prerelease_ → _Run workflow_，可选参数�
 
 ```sh
 just tools    # 一次性准备 apksigner（下载 build-tools 34 并提取 jar，约 60MB）
-just build    # 抓取 + 重签一条龙，产物在 download/*-emacs-signed.apk
+just termux   # 抓取 + 重签一条龙，产物在 download/*-emacs-signed.apk
 just fetch    # 只抓取（可 just fetch tag=v0.119.0-beta.3 abi=arm64-v8a）
 just resign   # 只重签（缺省自动选 download/ 下最新的未签名 APK）
 just clean    # 清理 download/
 ```
 
-重复 `just build` 不会重新下载：APK 已存在且官方 sha256 校验通过时自动跳过。已装 Android SDK 的系统可 `export APKSIGNER=apksigner` 覆盖默认的 jar 调用；依赖缺失的环境可在依赖齐全的容器中运行（如 `distrobox enter my-distrobox`）。
+重复 `just termux` 不会重新下载：APK 已存在且官方 sha256 校验通过时自动跳过。已装 Android SDK 的系统可 `export APKSIGNER=apksigner` 覆盖默认的 jar 调用；依赖缺失的环境可在依赖齐全的容器中运行（如 `distrobox enter my-distrobox`）。
 
 也可以直接用裸脚本：
 
