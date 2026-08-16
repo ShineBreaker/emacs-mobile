@@ -43,7 +43,8 @@
   "启动信息行。" :group 'emacs-mobile)
 
 (defface custom/dashboard-button
-  '((t :weight bold))
+  ;; 胶囊边框用 face box 画（╭╯ 盒线字形在 Maple 真机缺失）
+  '((t :weight bold :box (:line-width -2)))
   "navigator 胶囊按钮文字。" :group 'emacs-mobile)
 
 ;; ─── 通用装饰 ───────────────────────────────────────────────────────
@@ -55,18 +56,14 @@
   (and (display-graphic-p)
        (propertize code 'face 'custom/dashboard-deco-icon)))
 
-(defun custom/dashboard--rule (&optional icon)
-  "对称装饰分隔线：细线 + ICON + 细线。"
-  (let ((dash (propertize (make-string 9 ?─) 'face 'custom/dashboard-deco)))
-    (concat dash
-            (propertize (if icon (concat " " icon " ") " ")
-                        'face 'custom/dashboard-deco-icon)
-            dash)))
+(defun custom/dashboard--rule ()
+  "对称装饰分隔细线（纯线，不依赖 NF 外字形）。"
+  (propertize (make-string 19 ?─) 'face 'custom/dashboard-deco))
 
 (defun custom/dashboard-insert-hero ()
   "hero 区：分隔线 + 大标题 + 副标题（替换官方 braille logo）。"
   (insert "\n")
-  (dashboard-insert-center (custom/dashboard--rule (custom/dashboard--icon "\u2726")))
+  (dashboard-insert-center (custom/dashboard--rule))
   (insert "\n")
   (dashboard-insert-center
    (propertize
@@ -78,7 +75,7 @@
   (dashboard-insert-center
    (propertize "The one true editor" 'face 'custom/dashboard-subtitle))
   (insert "\n")
-  (dashboard-insert-center (custom/dashboard--rule (custom/dashboard--icon "\u2726")))
+  (dashboard-insert-center (custom/dashboard--rule))
   (insert "\n"))
 
 ;; ─── heading：NF 图标 + 两侧短装饰线 ────────────────────────────────
@@ -304,36 +301,37 @@
                      :action (custom/capture--open (car entry))
                      :button-face 'custom/dashboard-button
                      :mouse-face 'highlight
-                     :button-prefix "╭─ "
-                     :button-suffix " ─╯"
+                     :button-prefix " "
+                     :button-suffix " "
                      :format "%[%t%]")
       (insert "\n"))
     (goto-char (point-min))))
 
 ;; ─── 配置与启动 ─────────────────────────────────────────────────────
 
-;; navigator 胶囊按钮：圆角括号 + 内衬空白扩大点按面；icon 不走
-;; display-icons-p 判断（navigator 直接显示给定字符串），tty 无 NF
-;; 字形故给空串只显文字；action 须 lambda 包装（widget 调用带多余
-;; 参数）；先 require 再调（capture 模板挂在 with-eval-after-load 上，
-;; autoload 首次触发时可能先于模板执行）。
+;; navigator 胶囊按钮：边框由 face box 画（盒线字形真机缺失），
+;; 内衬空白扩大点按面；icon 不走 display-icons-p 判断（navigator
+;; 直接显示给定字符串），tty 无 NF 字形故给空串只显文字；action 须
+;; lambda 包装（widget 调用带多余参数）；先 require 再调（capture
+;; 模板挂在 with-eval-after-load 上，autoload 首次触发时可能先于
+;; 模板执行）。
 (setq dashboard-navigator-buttons
       `(((,(if (display-graphic-p) "\uF0E7" "") " 抓笔记 "
           "选择模板快速捕获"
-          custom/capture-menu custom/dashboard-button "╭" "╯")
+          custom/capture-menu custom/dashboard-button " " " ")
          (,(if (display-graphic-p) "\uF133" "") " 议程 "
           "本周日程"
           (lambda (&rest _)
             (require 'org-agenda)
             (custom/org--ensure-agenda-file)
             (org-agenda-list))
-          custom/dashboard-button "╭" "╯")
+          custom/dashboard-button " " " ")
          (,(if (display-graphic-p) "\uF07C" "") " 笔记 "
           "打开笔记文件夹"
           (lambda (&rest _)
             (custom/org--ensure-directories)
             (dired custom:org-roam-directory))
-          custom/dashboard-button "╭" "╯"))))
+          custom/dashboard-button " " " "))))
 
 ;; navigator 不在默认 startupify 列表；hero 替换官方 banner/标题
 (setq dashboard-startupify-list
@@ -348,7 +346,9 @@
   (dashboard-insert-center
    (propertize
     (format "%s%d 包 · %.2fs 启动"
-            (or (custom/dashboard--icon "\uF0E7") "")
+            (or (when-let* ((icon (custom/dashboard--icon "\uF0E7")))
+                  (concat icon " "))
+                "")
             (dashboard-init--packages-count)
             (string-to-number (emacs-init-time)))
     'face 'custom/dashboard-meta)))
@@ -372,6 +372,13 @@
       #'custom/dashboard-insert-roam)
 
 (dashboard-setup-startup-hook)
+
+;; Android 端口功耗管理下空闲计时器可能不触发，绝对计时器兜底补填
+(when (eq system-type 'android)
+  (run-with-timer 8 nil
+                  (lambda ()
+                    (unless custom/dashboard--warm
+                      (custom/dashboard--warm-fill)))))
 
 (provide 'init-dashboard)
 ;;; init-dashboard.el ends here
