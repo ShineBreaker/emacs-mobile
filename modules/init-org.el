@@ -5,8 +5,8 @@
 
 ;;; Commentary:
 ;; 从桌面移植的简化版：基础编辑体验设置 + inbox/agenda/roam capture
-;; 模板 + org-roam（sqlite3 CLI 后端，见下）。
-;; 不装 org-modern：Android sfnt 字体后端不支持其 Nerd 字形。
+;; 模板 + org-roam（sqlite3 CLI 后端，见下）+ org-appear / org-modern
+;; 视觉现代化（GUI 下启用，tty 自动降级）。
 
 ;;; Code:
 
@@ -126,7 +126,8 @@
       :config
       (org-roam-db-autosync-mode))))
 
-;; ─── org-appear（纯 face 变换，Android 字体可用） ───────────────────
+;; ─── org-appear + org-modern（org-appear 纯 face 变换，Android 字体可用；
+;; org-modern 需 Nerd 字形，主字体 Maple 含字形，GUI 下启用） ─────────
 
 (use-package org-appear
   :hook (org-mode . org-appear-mode)
@@ -135,6 +136,39 @@
   (org-appear-autolinks t)
   (org-appear-autosubmarkers t)
   (org-appear-autoentities t))
+
+;; org-modern 的星号替换与表格竖线都是 font-lock 内联 display/face 规格，
+;; 在 tty 上会渲染成白底/反色块（Android 终端无颜色管理），tty 下降级为
+;; ASCII 表格与 Unicode 子弹，前导星号交 org-indent 隐藏
+(defun custom/org-modern--apply-display ()
+  "非 GUI frame 下降级 `org-modern' 的星号与表格渲染。"
+  (unless (display-graphic-p)
+    (setq-local org-modern-table nil
+                org-modern-table-vertical nil
+                org-modern-table-horizontal nil
+                org-modern-star 'replace
+                org-modern-hide-stars 'leading)))
+
+(add-hook 'org-mode-hook #'custom/org-modern--apply-display -90)
+
+(use-package org-modern
+  :hook (org-mode . org-modern-mode)
+  :custom
+  (org-modern-star 'replace)
+  (org-modern-replace-stars '("" "" "󰜋" "󰜌" "" "" ""))
+  (org-modern-list
+   '((?- . "")
+     (?* . "")
+     (?+ . "")))
+  (org-modern-hide-stars 'leading)
+  (org-modern-table t)
+  (org-modern-table-vertical 2)
+  (org-modern-table-horizontal 0.12)
+  (org-modern-keyword t)
+  (org-modern-todo t)
+  (org-modern-tag t)
+  (org-modern-block-name t)
+  (org-modern-block-fringe 4))
 
 (provide 'init-org)
 ;;; init-org.el ends here
