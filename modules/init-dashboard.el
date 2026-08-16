@@ -81,15 +81,11 @@
   (dashboard-insert-center (custom/dashboard--rule))
   (insert "\n"))
 
-;; ─── heading：NF 图标 + 两侧短装饰线 ────────────────────────────────
-;; heading 文本经 `dashboard-item-names' overlay 换显示名（buffer 内保留
-;; 英文原文，`dashboard--current-section' 段导航仍按原文识别）。
-
-(setq dashboard-item-names
-      '(("Recent Files:" . "最近文件")
-        ("Agenda for the coming week:" . "本周议程")
-        ("Agenda for today:" . "今日议程")
-        ("Recent Roam Notes:" . "最近笔记")))
+;; ─── heading：中文标题 + NF 图标 + 两侧短装饰线 ─────────────────────
+;; 标题必须直接用中文做 buffer 文本：`dashboard--find-max-width' 按
+;; buffer 原文计宽，overlay display 换名不参与计算，英文长原文会把
+;; 整块居中前缀撑成负值（真机 40 列下顶左）。段导航
+;; `dashboard--current-section' 按英文识别，触屏无键盘不触达。
 
 (defun custom/dashboard--heading-icon (code &rest _)
   "返回码点 CODE 的图标串（忽略 dashboard 传入的图标尺寸参数）。"
@@ -107,7 +103,6 @@
   (prog1 (funcall fn heading shortcut icon)
     (let ((deco (propertize "──── " 'face 'custom/dashboard-deco)))
       (save-excursion
-        ;; overlay display 不改变 buffer 文本，回退按原文长度；
         ;; icon 回退须与官方插入条件一致（tty 无字形不插入 icon）
         (goto-char (- (point) (length heading)))
         (when (and (dashboard-display-icons-p) dashboard-set-heading-icons icon)
@@ -189,7 +184,7 @@
   "最近文件 LIST-SIZE 条：图标 + 路径标签（省略号截断窄屏不可读）。"
   (unless recentf-mode (recentf-mode 1))
   (dashboard-insert-section
-   "Recent Files:"
+   "最近文件"
    recentf-list
    list-size
    'recents
@@ -220,7 +215,7 @@
   (when custom/dashboard--warm
     (let ((items (custom/org-roam-recent-notes list-size)))
       (dashboard-insert-section
-       "Recent Roam Notes:"
+       "最近笔记"
        items
        list-size
        'roam nil
@@ -229,10 +224,25 @@
          (concat icon (unless (string-empty-p icon) " ")
                  (custom/dashboard--fit (car el) (length icon))))))))
 
+(declare-function dashboard-agenda--sorted-agenda "dashboard-widgets")
+(defvar dashboard-agenda-action)
+
 (defun custom/dashboard-insert-agenda-deferred (list-size)
-  "agenda 条目（冷启动跳过，见 `custom/dashboard--warm'）。"
+  "agenda 条目（冷启动跳过，见 `custom/dashboard--warm'）。
+中文标题须直接传给 insert-section（官方 heading 英文原文会撑爆
+`dashboard--find-max-width' 的居中计算）。"
   (when custom/dashboard--warm
-    (dashboard-insert-agenda list-size)))
+    (require 'org-agenda)
+    (dashboard-insert-section
+     "本周议程"
+     (dashboard-agenda--sorted-agenda)
+     list-size
+     'agenda nil
+     `(lambda (&rest _)
+        (let ((file (get-text-property 0 'dashboard-agenda-file ,el))
+              (point (get-text-property 0 'dashboard-agenda-loc ,el)))
+          (funcall dashboard-agenda-action file point)))
+     (format "%s" el))))
 
 (defun custom/dashboard--agenda-fit (items)
   "agenda 条目串超宽时中截（窄屏防折行；substring 保留定位属性）。"
