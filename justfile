@@ -98,7 +98,7 @@ icons:
     done
     # modifier-bar 徽章也算依赖（少了即触发重建）
     for n in control shift meta alt super hyper tab esc; do
-        [[ -f "data/icons/mod-$n.png" ]] || missing="$missing mod-$n"
+        [[ -f "data/icons/mod-$n.xpm" ]] || missing="$missing mod-$n"
     done
     if [[ -z "$missing" ]]; then
         echo "data/icons/ 图标已齐（随仓库分发），跳过"
@@ -136,19 +136,38 @@ icons:
         rsvg-convert -w 72 -h 90 "$tmp/$name-gray.svg" > "data/icons/$name.png"
         cp "$tmp/$name-pad.svg" "data/icons/$name.svg"
     done
-    # modifier-bar 徽章：官方六修饰键是 35×19 PBM 文字徽章，与 Papirus
-    # 图标风格不搭——整套 8 枚统一为描边文字徽章（灰 #808080 双主题
-    # 通吃，2× 光栅化 168×96，字体 Maple）
-    badges=("control:Ctrl" "shift:Shift" "meta:Meta" "alt:Alt"
-            "super:Sup" "hyper:Hyp" "tab:Tab" "esc:Esc")
-    for item in "${badges[@]}"; do
-        label="${item#*:}"; name="${item%%:*}"
+    # modifier-bar 徽章：修饰键取前缀单字母（C S M A s H），Tab/Esc 全名。
+    # 输出 XPM（掩码透明，Lucid 工具栏原生支持——PNG alpha 在 Lucid 上
+    # 不合成会露白底；XPM 不支持运行时缩放，显示尺寸烤死在资产里：
+    # 字母 28×28、Tab/Esc 49×28，2× 渲染后 netpbm 缩小）；PNG 留作
+    # 无 libxpm 构建的兜底。灰 #808080 双主题通吃。
+    command -v pngtopam >/dev/null || { echo "需要 netpbm（guix install netpbm）"; exit 1; }
+    mk_badge() {  # $1=name $2=label $3=canvasW $4=canvasH $5=outW $6=outH
+        local name="$1" label="$2" cw="$3" ch="$4" ow="$5" oh="$6"
+        local rx=$((cw/10)) stroke=$((cw/14)) fs=$((cw*5/8))
         printf '%s\n' \
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"168\" height=\"96\"><rect x=\"6\" y=\"6\" width=\"156\" height=\"84\" rx=\"16\" ry=\"16\" fill=\"none\" stroke=\"#808080\" stroke-width=\"6\"/><text x=\"84\" y=\"72\" font-family=\"Maple Mono NF CN\" font-size=\"56\" fill=\"#808080\" text-anchor=\"middle\">$label</text></svg>" \
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"$cw\" height=\"$ch\"><rect x=\"$((stroke/2+2))\" y=\"$((stroke/2+2))\" width=\"$((cw-stroke-4))\" height=\"$((ch-stroke-4))\" rx=\"$rx\" ry=\"$rx\" fill=\"none\" stroke=\"#808080\" stroke-width=\"$stroke\"/><text x=\"$((cw/2))\" y=\"$((ch/2+fs*7/20))\" font-family=\"Maple Mono NF CN\" font-size=\"$fs\" fill=\"#808080\" text-anchor=\"middle\">$label</text></svg>" \
             > "$tmp/mod-$name.svg"
-        rsvg-convert "$tmp/mod-$name.svg" > "data/icons/mod-$name.png"
-    done
-    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底 + 8 枚 modifier-bar 徽章"
+        rsvg-convert "$tmp/mod-$name.svg" > "$tmp/mod-$name.png"
+        cp "$tmp/mod-$name.png" "data/icons/mod-$name.png"
+        # PNG → XPM：RGB 与 alpha 分别转出（pngtopam -alpha 走 stdout），
+        # 同步缩放到目标尺寸后合成掩码透明
+        pngtopam "$tmp/mod-$name.png" | pamscale -xsize="$ow" -ysize="$oh" \
+            > "$tmp/mod-$name.ppm"
+        pngtopam -alpha "$tmp/mod-$name.png" \
+            | pamscale -xsize="$ow" -ysize="$oh" > "$tmp/mod-$name.mask"
+        ppmtoxpm -alphamask="$tmp/mod-$name.mask" "$tmp/mod-$name.ppm" \
+            > "data/icons/mod-$name.xpm"
+    }
+    mk_badge control  C   56 56 28 28
+    mk_badge shift    S   56 56 28 28
+    mk_badge meta     M   56 56 28 28
+    mk_badge alt      A   56 56 28 28
+    mk_badge super    s   56 56 28 28
+    mk_badge hyper    H   56 56 28 28
+    mk_badge tab      Tab 98 56 49 28
+    mk_badge esc      Esc 98 56 49 28
+    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底 + 8 枚 modifier-bar 徽章（XPM）"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。

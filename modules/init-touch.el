@@ -61,11 +61,6 @@
 ;; 机制，非上游写死，PLAN 旧结论「不可配」作废）；TAB/ESC 非修饰键，
 ;; 塞进 unread-command-events 即等同物理按键。
 
-(defcustom custom/modbar-icon-height 28
-  "modifier-bar 自定义按钮图标高度（对齐官方内置修饰键图标量级）。"
-  :type 'integer
-  :group 'emacs-mobile)
-
 (defun custom/modbar-tab ()  "发送 TAB 键（等同物理键盘 Tab：补全切换/缩进等场景）。"
   (interactive)
   (setq unread-command-events (list ?\t)))
@@ -76,10 +71,13 @@
   (setq unread-command-events (list ?\e)))
 
 (defun custom/modbar--badge (name)
-  "取 data/icons/mod-NAME.png 徽章图像（描边文字徽章，中灰双主题）。"
+  "取 data/icons/mod-NAME 徽章图像。
+XPM 优先（掩码透明——PNG alpha 在 Lucid 工具栏不合成会露白底），
+无 libxpm 构建回退 PNG。XPM 不支持运行时缩放，显示尺寸烤在资产里
+（字母 28×28、Tab/Esc 49×28，改尺寸须 justfile 调参重跑）。"
   (find-image
-   `((:type png :file ,(concat "mod-" name ".png")
-            :height ,custom/modbar-icon-height))))
+   `((:type xpm :file ,(concat "mod-" name ".xpm"))
+     (:type png :file ,(concat "mod-" name ".png")))))
 
 (defun custom/modbar--setup ()
   "整套重建 modifier-bar：六修饰键 + Tab/ESC 统一为文字徽章风格。

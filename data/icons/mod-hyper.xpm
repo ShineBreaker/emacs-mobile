@@ -1,0 +1,42 @@
+/* XPM */
+static char */tmp/tmp[] = {
+/* width height ncolors chars_per_pixel */
+"28 28 7 1",
+/* colors */
+"  c #6D6D6D",
+". c gray43",
+"X c web gray",
+"o c #818181",
+"O c gray51",
+"+ c gray34",
+"@ c None",
+/* pixels */
+"@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
+"@@@XXXXXXXXXXXXXXXXXXXXXX@@@",
+"@@XXXXXXXXXXXXXXXXXXXXXXXX@@",
+"@XX @@@@@@@@@@@@@@@@@@@@.XX@",
+"@XX@@@@@@@@@@@@@@@@@@@@@@XX@",
+"@XX@@@@@@@@@@@@@@@@@@@@@@XX@",
+"@XX@@@@@@@@@@@@@@@@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@Xo@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@XX++++XX@@@@@@@XX@",
+"@XX@@@@@@@XXXXXXXX@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@XX@@@@XX@@@@@@@XX@",
+"@XX@@@@@@@oX@@@@XO@@@@@@@XX@",
+"@XX@@@@@@@@@@@@@@@@@@@@@@XX@",
+"@XX@@@@@@@@@@@@@@@@@@@@@@XX@",
+"@XX@@@@@@@@@@@@@@@@@@@@@@XX@",
+"@XX@@@@@@@@@@@@@@@@@@@@@@XX@",
+"@XX.@@@@@@@@@@@@@@@@@@@@.XX@",
+"@@XXXXXXXXXXXXXXXXXXXXXXXX@@",
+"@@@XXXXXXXXXXXXXXXXXXXXXX@@@",
+"@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+};
