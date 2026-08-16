@@ -85,13 +85,11 @@ icons:
     set -euo pipefail
     base="https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/{{papirus_tag}}/Papirus/24x24/symbolic"
     spec=(
-        "modbar devices/input-keyboard"     "save actions/document-save"
-        "copy actions/edit-copy"            "cut actions/edit-cut"
-        "paste actions/edit-paste"          "undo actions/edit-undo"
-        "redo actions/edit-redo"            "search actions/edit-find"
-        "recenter actions/format-justify-center"
-        "theme status/night-light"          "config actions/lucide-wrench"
-        "dashboard actions/view-grid"
+        "modbar devices/input-keyboard"     "open actions/document-open"
+        "save actions/document-save"        "copy actions/edit-copy"
+        "paste actions/edit-paste"          "cut actions/edit-cut"
+        "search actions/edit-find"          "theme status/night-light"
+        "config places/folder"              "dashboard actions/view-grid"
     )
     missing=""
     for item in "${spec[@]}"; do
@@ -126,7 +124,7 @@ icons:
         rsvg-convert -w 72 -h 72 "$tmp/$name-gray.svg" > "data/icons/$name.png"
         cp "$tmp/$name.svg" "data/icons/$name.svg"
     done
-    echo "已生成 12 枚 Papirus symbolic .svg + 72px 兜底 .png"
+    echo "已生成 10 枚 Papirus symbolic .svg + 72px 兜底 .png"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。

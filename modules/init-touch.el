@@ -57,9 +57,9 @@
     (message "本 Emacs 无 modifier-bar（需 Android 官方构建）")))
 
 (defun custom/touch-open-config ()
-  "打开配置入口 init.el。"
+  "打开配置所在的文件夹（dired）。"
   (interactive)
-  (find-file (expand-file-name "init.el" user-emacs-directory)))
+  (dired user-emacs-directory))
 
 (defun custom/touch-no-keyboard ()
   "buffer-local 关闭 tap 弹虚拟键盘（展示型 buffer 用）。"

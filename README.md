@@ -4,7 +4,7 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / UI / 触屏 / 工具栏 / 补全 / Org / 仪表盘 / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 设计依据见 PLAN.md（不入库）。交互回归**官方组件分层**（自实现 side window 工具栏因 tap 会把工具栏 buffer 选中、命令落到工具栏自身而废弃）：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 保存/复制/剪切/粘贴/撤销/重做/搜索/回中/深浅主题/打开配置/仪表盘，图标为 [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) symbolic 矢量 SVG（加载时按深浅主题重着色直渲，无 librsvg 构建回退中灰 PNG 兜底；`just icons` 幂等重建，上游 GPL-3.0，来源见 data/icons/README.md；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载 buffer/窗口控制——✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）、换 切换缓冲区。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
+> 设计依据见 PLAN.md（不入库）。交互回归**官方组件分层**（自实现 side window 工具栏因 tap 会把工具栏 buffer 选中、命令落到工具栏自身而废弃）：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 打开/保存/复制/粘贴/剪切/搜索/深浅主题/配置文件夹(dired)/仪表盘（10 钮；撤销/重做走 M-x，回中在 mode-line 右端），图标为 [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) symbolic 矢量 SVG（加载时按深浅主题重着色直渲，无 librsvg 构建回退中灰 PNG 兜底；`just icons` 幂等重建，上游 GPL-3.0，来源见 data/icons/README.md；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载 buffer/窗口控制——✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）、换 切换缓冲区。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
 
 ## 1. APK 选择
 

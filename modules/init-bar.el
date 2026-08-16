@@ -23,7 +23,7 @@
   :type 'integer
   :group 'emacs-mobile)
 
-(defcustom custom/bar-button-margin 6
+(defcustom custom/bar-button-margin 4
   "tool-bar 按钮边距（触控 padding，像素）。0 视觉最紧凑。"
   :type 'integer
   :group 'emacs-mobile)
@@ -89,24 +89,22 @@
   (add-to-list 'image-load-path
                (expand-file-name "data/icons" user-emacs-directory))
 
-  ;; 按钮表（首尾皆工具栏语义入口）：首位 = modifier-bar 显隐开关
+  ;; 按钮表（10 钮单行，2026-08-16 重排）：首位 = modifier-bar 显隐开关
   (setq tool-bar-map (make-sparse-keymap))
   (custom/bar--add-button 'modbar "修"
                           #'custom/touch-toggle-modifier-bar
                           "显示/隐藏修饰键栏")
+  (custom/bar--add-button 'open "开" #'find-file "打开文件 (C-x C-f)")
   (custom/bar--add-button 'save "存" #'save-buffer "保存 (C-x C-s)")
   (custom/bar--add-button 'copy "复" #'custom/touch-copy "复制选区/当前行")
-  (custom/bar--add-button 'cut "剪" #'custom/touch-cut "剪切选区/当前行")
   (custom/bar--add-button 'paste "贴" #'yank "粘贴 (C-y)")
-  (custom/bar--add-button 'undo "撤" #'undo "撤销")
-  (custom/bar--add-button 'redo "重" #'undo-redo "重做")
+  (custom/bar--add-button 'cut "剪" #'custom/touch-cut "剪切选区/当前行")
   (custom/bar--add-button 'search "搜" #'custom/touch-search
                           "搜索（rg 或当前缓冲区）")
-  (custom/bar--add-button 'recenter "中" #'recenter-top-bottom "当前行回中")
   (custom/bar--add-button 'theme "色" #'custom/color-scheme-toggle
                           "切换深浅色主题")
   (custom/bar--add-button 'config "配" #'custom/touch-open-config
-                          "打开配置 init.el")
+                          "打开配置文件夹（dired）")
   (custom/bar--add-button 'dashboard "盘" #'dashboard-open
                           "打开/刷新仪表盘")
   (tool-bar-mode 1))

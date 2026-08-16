@@ -161,6 +161,16 @@
    'mouse-face 'highlight
    'help-echo "关闭当前 buffer 及其窗口"))
 
+(defun custom/mode-line--recenter-button ()
+  "mode-line 右端「当前行回中」按钮（自 tool-bar 迁来）。"
+  (propertize
+   (format "%s " (if (display-graphic-p) "\uF037" "中"))
+   'local-map (make-mode-line-mouse-map
+               'mouse-1 #'recenter-top-bottom)
+   'mouse-face 'highlight
+   'help-echo "当前行回中"))
+
+;; 行首 = buffer 控制；右端 = 回中（Emacs 30+ 的 right-align 构件）
 (setq-default mode-line-format
               '("%e"
                 (:eval (custom/mode-line--close-button))
@@ -169,7 +179,19 @@
                 " "
                 mode-name
                 "  "
-                (:eval (custom/mode-line--percent))))
+                (:eval (custom/mode-line--percent))
+                (right-align (:eval (custom/mode-line--recenter-button)))))
+
+;; ─── 换行与行号（2026-08-16）：任何 buffer 软换行 + 编辑区小号行号 ──
+
+(global-visual-line-mode 1)
+
+;; 行号只在编辑类 buffer（prog/text/org），展示型 buffer 不加
+(dolist (hook '(prog-mode-hook text-mode-hook org-mode-hook))
+  (add-hook hook #'display-line-numbers-mode))
+(setq-default display-line-numbers-width 2) ; 定宽 2 位，短行号不挤
+(set-face-attribute 'line-number nil :height 0.8)
+(set-face-attribute 'line-number-current-line nil :height 0.8)
 
 (provide 'init-ui)
 ;;; init-ui.el ends here

@@ -11,14 +11,12 @@ tag `20260801` 的 24×24 symbolic 系列（单色、`ColorScheme-Text` CSS 变�
 | 按钮 | Papirus 图标 |
 | --- | --- |
 | modbar | devices/input-keyboard-symbolic |
+| open | actions/document-open-symbolic |
 | save | actions/document-save-symbolic |
 | copy | actions/edit-copy-symbolic |
-| cut | actions/edit-cut-symbolic |
 | paste | actions/edit-paste-symbolic |
-| undo | actions/edit-undo-symbolic |
-| redo | actions/edit-redo-symbolic |
+| cut | actions/edit-cut-symbolic |
 | search | actions/edit-find-symbolic |
-| recenter | actions/format-justify-center-symbolic |
 | theme | status/night-light-symbolic |
-| config | actions/lucide-wrench-symbolic |
+| config | places/folder-symbolic |
 | dashboard | actions/view-grid-symbolic |
