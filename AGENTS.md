@@ -17,10 +17,10 @@ Android 原生 Emacs 触屏配置（纯触屏、无键盘交互）＋ Termux APK
 
 1. **加载顺序即契约** — init.el 的 require 序列是模块依赖的唯一契约，不得随意调换。跨模块引用必须显式声明：函数用 `declare-function`，变量用 `defvar` 在使用方就近声明；禁止用 `boundp` 防御访问他模块变量。
 2. **图标加载唯一入口** — `custom/icon-asset`（init-basis）：SVG 主题重着色 / PBM 徽章 / PNG 兜底统一回退链。新增按钮/徽章图标一律走此入口，禁止另写 find-image 实现。
-3. **字形降级唯一入口** — `custom/glyph`（init-basis）：GUI NF 字形 + tty 回退文字。新增字形禁止再写裸 `(if (display-graphic-p) ...)` 分支；dashboard 侧 5 处待迁移（改 dashboard 时顺手接）。
+3. **字形降级唯一入口** — `custom/glyph`（init-basis）：GUI NF 字形 + tty 回退文字。新增字形禁止再写裸 `(if (display-graphic-p) ...)` 分支；`custom/dashboard--icon`（带 face、nil 契约）是 dashboard 视觉层封装，与 glyph 不同层，保留。
 4. **徽章资产规格** — 字母 32×32、Tab/Esc 64×32。justfile `icons` 配方是唯一生成源，elisp 侧尺寸注释必须与其一致。
 5. **颜色状态文件** — 写侧输出 elisp setq 表单，读侧 `read` 精确解析，读写对称；禁止子串匹配。
-6. **org-roam 数据访问** — 查询 + 增量同步 + 错误降级应收进 init-org 模块（C1 待办）；dashboard 改完后再实施，当前 dashboard 内现有 SQL 保持不动。
+6. **org-roam 数据访问接口** — `custom/org-roam-recent-notes`（init-org）是展示层唯一入口：查询 + 增量同步 + 错误降级集中于此，schema/版本变更只改 init-org；展示层禁止直接调 org-roam-db-* / require org-roam。
 
 ## 改动后验证
 
@@ -42,5 +42,5 @@ Android 原生 Emacs 触屏配置（纯触屏、无键盘交互）＋ Termux APK
 
 ## 当前状态
 
-- dashboard 由作者并行修改中，改前必须重读 init-dashboard.el。
-- C1（dashboard 拆层）未实施；C2/C3/C4 主体已落地（见提交历史）。
+- C1（dashboard 拆层）、C2（图标管线）、C3（字形统一）、C4（声明显式化）、C5（颜色状态对称）均已落地。
+- 遗留观察项：early-init/init.el 部署转发双份镜像判定未收敛（工作正常，改动敏感）；justfile/scripts 与 Elisp 层概念重复（图标清单、字体、apk 重签）待评估。

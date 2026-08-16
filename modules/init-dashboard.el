@@ -51,6 +51,9 @@
 
 ;; ─── NF 图标码点（GUI 直出字形，tty 无字形返回空串） ────────────────
 
+(declare-function custom/glyph "init-basis")
+(defvar custom:org-directory)  ; 定义在 init-basis
+
 (defun custom/dashboard--icon (code)
   "GUI 返回 NF 码点 CODE 的图标串，tty 返回空串。"
   (and (display-graphic-p)
@@ -162,8 +165,7 @@
 
 (defun custom/dashboard--recent-label (path)
   "recents 条目文本：org 根下显示相对路径，其余目录首字母缩写。"
-  (let ((rel (and (boundp 'custom:org-directory)
-                  custom:org-directory
+  (let ((rel (and custom:org-directory
                   (file-in-directory-p path custom:org-directory)
                   (file-relative-name path custom:org-directory))))
     (cond
@@ -208,29 +210,15 @@
 
 ;; ─── roam 条目：最近修改的长期笔记 ──────────────────────────────────
 
-(declare-function org-roam-db-query "org-roam")
-(declare-function org-roam-db-sync "org-roam")
+(declare-function custom/org-roam-recent-notes "init-org")
 (declare-function custom/touch-show-keyboard "init-touch")
 (defvar org-capture-templates)
 
 (defun custom/dashboard-insert-roam (list-size)
-  "最近修改的 Roam 笔记 LIST-SIZE 条；db 不可用时整块降级为 No items。"
+  "最近修改的 Roam 笔记 LIST-SIZE 条；db 不可用时整块降级为 No items。
+数据访问统一走 `custom/org-roam-recent-notes'（init-org）。"
   (when custom/dashboard--warm
-    (let* ((rows (ignore-errors
-                  (require 'org-roam)
-                  ;; 显式增量同步：autosync 不索引外部新到文件（Syncthing 场景）
-                  (org-roam-db-sync)
-                  (org-roam-db-query
-                   `[:select [nodes:title nodes:file]
-                     :from nodes
-                     :join files :on (= nodes:file files:file)
-                     :order-by (desc files:mtime)
-                     :limit ,list-size])))
-           (items (mapcar (lambda (row)
-                            (cons (or (nth 0 row)
-                                      (file-name-nondirectory (nth 1 row)))
-                                  (nth 1 row)))
-                          rows)))
+    (let ((items (custom/org-roam-recent-notes list-size)))
       (dashboard-insert-section
        "Recent Roam Notes:"
        items
@@ -316,17 +304,17 @@
 ;; 模板挂在 with-eval-after-load 上，autoload 首次触发时可能先于
 ;; 模板执行）。
 (setq dashboard-navigator-buttons
-      `(((,(if (display-graphic-p) "\uF0E7" "") " 抓笔记 "
+      `(((,(custom/glyph "\uF0E7" "") " 抓笔记 "
           "选择模板快速捕获"
           custom/capture-menu custom/dashboard-button " " " ")
-         (,(if (display-graphic-p) "\uF133" "") " 议程 "
+         (,(custom/glyph "\uF133" "") " 议程 "
           "本周日程"
           (lambda (&rest _)
             (require 'org-agenda)
             (custom/org--ensure-agenda-file)
             (org-agenda-list))
           custom/dashboard-button " " " ")
-         (,(if (display-graphic-p) "\uF07C" "") " 笔记 "
+         (,(custom/glyph "\uF07C" "") " 笔记 "
           "打开笔记文件夹"
           (lambda (&rest _)
             (custom/org--ensure-directories)
@@ -361,7 +349,7 @@
 ;; footer：固定标语 + 心形图标
 (setq dashboard-footer-messages '("The one true editor, Emacs!")
       dashboard-footer-icon
-      (propertize (if (display-graphic-p) "\uF004" "♥")
+      (propertize (custom/glyph "\uF004" "♥")
                   'face 'custom/dashboard-deco-icon))
 
 (setf (alist-get 'recents dashboard-item-generators)
