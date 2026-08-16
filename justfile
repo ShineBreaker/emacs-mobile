@@ -137,35 +137,44 @@ icons:
         cp "$tmp/$name-pad.svg" "data/icons/$name.svg"
     done
     # modifier-bar 徽章：修饰键取前缀单字母（C S M A s H），Tab/Esc 全名。
-    # 输出 PBM 位图（官方修饰键同机制，Android 真机验证可行；位图按
-    # 工具栏前景色着色，深浅主题自动适配）。XPM 路线真机两次不渲染
-    # （命名色/hex 色均败），弃；PNG alpha 在 Lucid 不合成露白底，仅作
-    # PBM 不可用时的兜底。显示尺寸烤死在资产里：字母 28×28、
-    # Tab/Esc 49×28（2× 渲染后 netpbm 缩小 + alpha 阈值化）。
+    # 字体 = unscii-16（8×16 像素字体，公有领域，方整干净）：按最终尺寸
+    # 直出不缩放（像素字体缩放会糊），笔画阈值化。输出 PBM 位图（官方
+    # 修饰键同机制，Android 真机验证可行；位图按工具栏前景色着色，
+    # 深浅主题自动适配）。XPM 真机不渲染已弃；PNG alpha 露白底仅兜底。
+    # 显示尺寸烤死在资产：字母 32×32、Tab/Esc 64×32。
     command -v pngtopam >/dev/null || { echo "需要 netpbm（guix install netpbm）"; exit 1; }
-    mk_badge() {  # $1=name $2=label $3=canvasW $4=canvasH $5=outW $6=outH
-        local name="$1" label="$2" cw="$3" ch="$4" ow="$5" oh="$6"
-        local fs=$((ch*5/7))
+    if ! fc-list :family 2>/dev/null | grep -i "^.*unscii" >/dev/null; then
+        command -v curl >/dev/null || { echo "需要 curl"; exit 1; }
+        curl -fsSL --retry 3 -o "$tmp/unscii.tar.gz" \
+            "https://codeload.github.com/viznut/unscii/tar.gz/refs/heads/main"
+        mkdir -p "${HOME}/.local/share/fonts"
+        tar xzOf "$tmp/unscii.tar.gz" unscii-main/fontfiles/unscii-16.ttf \
+            > "${HOME}/.local/share/fonts/unscii-16.ttf"
+        fc-cache -f >/dev/null 2>&1 || true
+        fc-list :family | grep -i unscii >/dev/null \
+            || { echo "unscii 字体安装失败"; exit 1; }
+    fi
+    mk_badge() {  # $1=name $2=label $3=outW $4=outH $5=fontSize
+        local name="$1" label="$2" ow="$3" oh="$4" fs="$5"
         printf '%s\n' \
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"$cw\" height=\"$ch\"><text x=\"$((cw/2))\" y=\"$((ch/2+fs*7/20))\" font-family=\"Maple Mono NF CN\" font-size=\"$fs\" fill=\"#000000\" text-anchor=\"middle\">$label</text></svg>" \
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"$ow\" height=\"$oh\"><text x=\"$((ow/2))\" y=\"$((oh+1))\" font-family=\"unscii\" font-size=\"$fs\" fill=\"#000000\" text-anchor=\"middle\">$label</text></svg>" \
             > "$tmp/mod-$name.svg"
         rsvg-convert "$tmp/mod-$name.svg" > "$tmp/mod-$name.png"
         cp "$tmp/mod-$name.png" "data/icons/mod-$name.png"
         # PBM：alpha 通道阈值化（不透明=笔画），pnminvert 使笔画位=1
         # （PBM 1=黑=按前景色绘制的字形）
         pngtopam -alpha "$tmp/mod-$name.png" \
-            | pamscale -xsize="$ow" -ysize="$oh" \
             | pgmtopbm -threshold | pnminvert > "data/icons/mod-$name.pbm"
     }
-    mk_badge control  C   56 56 28 28
-    mk_badge shift    S   56 56 28 28
-    mk_badge meta     M   56 56 28 28
-    mk_badge alt      A   56 56 28 28
-    mk_badge super    s   56 56 28 28
-    mk_badge hyper    H   56 56 28 28
-    mk_badge tab      Tab 98 56 49 28
-    mk_badge esc      Esc 98 56 49 28
-    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底 + 8 枚 modifier-bar 徽章（PBM）"
+    mk_badge control  C   32 32 32
+    mk_badge shift    S   32 32 32
+    mk_badge meta     M   32 32 32
+    mk_badge alt      A   32 32 32
+    mk_badge super    s   32 32 32
+    mk_badge hyper    H   32 32 32
+    mk_badge tab      Tab 64 32 32
+    mk_badge esc      Esc 64 32 32
+    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底 + 8 枚 modifier-bar 徽章（PBM/unscii）"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。
