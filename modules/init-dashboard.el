@@ -68,6 +68,8 @@
 
 (declare-function org-roam-db-query "org-roam")
 (declare-function org-roam-db-sync "org-roam")
+(declare-function custom/touch-show-keyboard "init-touch")
+(defvar org-capture-templates)
 
 (defun custom/dashboard-insert-roam (list-size)
   "最近修改的 Roam 笔记 LIST-SIZE 条；db 不可用时整块降级为 No items。"
@@ -111,22 +113,71 @@
 
 (run-with-idle-timer 4 nil #'custom/dashboard--warm-fill)
 
+;; ─── 抓笔记：触屏模板选择面板 ───────────────────────────────────────
+;; org-mks（*Org Select*）以 `read-key-exclusive' 读键盘字符，tap 事件
+;; 无法选中且每次触摸触发一轮重绘，触屏上不可用；改 widget 按钮直达。
+
+(defvar custom/capture-menu-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mouse-1] #'widget-button-click)
+    (define-key map (kbd "<touchscreen-begin>") #'widget-button-click)
+    map))
+
+(define-derived-mode custom/capture-menu-mode special-mode "抓笔记"
+  "触屏 capture 模板选择面板。"
+  (setq-local touch-screen-display-keyboard nil))
+
+(defun custom/capture--open (keys)
+  "返回调 org-capture 模板 KEYS 的 widget action：当前窗显示并唤起键盘。"
+  (lambda (&rest _)
+    (require 'org-capture)
+    ;; org 默认 split 显示 CAPTURE buffer，单窗机强制占当前窗
+    (let ((display-buffer-overriding-action '((display-buffer-same-window))))
+      (org-capture nil keys))
+    (custom/touch-show-keyboard)))
+
+(defun custom/capture-menu (&rest _)
+  "打开触屏友好的抓笔记模板选择面板（条目取自 `org-capture-templates'）。"
+  (interactive)
+  (require 'org-capture)
+  (switch-to-buffer (get-buffer-create "*抓笔记*"))
+  (custom/capture-menu-mode)
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert (propertize "选择抓笔记模板\n\n" 'face 'bold))
+    (dolist (entry org-capture-templates)
+      (widget-create 'item
+                     :tag (nth 1 entry)
+                     :action (custom/capture--open (car entry))
+                     :button-face 'bold
+                     :mouse-face 'highlight
+                     :button-prefix "["
+                     :button-suffix "]"
+                     :format "%[%t%]")
+      (insert "\n"))
+    (goto-char (point-min))))
+
 ;; ─── 配置与启动 ─────────────────────────────────────────────────────
 
 ;; navigator 按钮行：icon 不走 display-icons-p 判断（navigator 直接显示
 ;; 给定字符串），tty 无 NF 字形故给空串只显文字；action 须 lambda 包装
-;; （widget 调用带多余参数）；先 require 再调（capture 模板挂在
-;; with-eval-after-load 上，autoload 首次触发时可能先于模板执行）。
+;; （widget 调用带多余参数），命令则传符号；先 require 再调（capture
+;; 模板挂在 with-eval-after-load 上，autoload 首次触发时可能先于模板执行）。
 (setq dashboard-navigator-buttons
       `(((,(if (display-graphic-p) "\uF0E7" "") "抓笔记"
-          "快速捕获"
-          (lambda (&rest _) (require 'org-capture) (org-capture)))
+          "选择模板快速捕获"
+          custom/capture-menu)
          (,(if (display-graphic-p) "\uF133" "") "议程"
           "本周日程"
-          (lambda (&rest _) (require 'org-agenda) (org-agenda)))
-         (,(if (display-graphic-p) "\uF0C1" "") "Roam 笔记"
-          "查找/新建长期笔记"
-          (lambda (&rest _) (org-roam-node-find))))))
+          (lambda (&rest _)
+            (require 'org-agenda)
+            (custom/org--ensure-agenda-file)
+            (org-agenda-list)))
+         (,(if (display-graphic-p) "\uF0F6" "") "笔记"
+          "打开笔记文件夹"
+          (lambda (&rest _)
+            (custom/org--ensure-directories)
+            (dired custom:org-roam-directory))))))
 
 ;; navigator 不在默认 startupify 列表，显式加在标题后、条目前
 (setq dashboard-startupify-list

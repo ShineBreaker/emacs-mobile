@@ -12,6 +12,8 @@
 ;;; Code:
 
 (declare-function dashboard-open "dashboard")
+(declare-function dired-mouse-find-file "dired")
+(defvar dired-mode-map)
 
 ;; ─── 复制 / 剪切：有选区作用于选区，无选区作用于当前行 ─────────────
 ;; 无选区时整行操作更符合触屏直觉。
@@ -140,6 +142,11 @@ PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深�
   "buffer-local 关闭 tap 弹虚拟键盘（展示型 buffer 用）。"
   (setq-local touch-screen-display-keyboard nil))
 
+(defun custom/touch-show-keyboard ()
+  "主动唤出系统虚拟键盘（无软键盘的平台为空操作）。"
+  (when (fboundp 'frame-toggle-on-screen-keyboard)
+    (frame-toggle-on-screen-keyboard (selected-frame) nil)))
+
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
 (when custom:android-p
@@ -161,8 +168,14 @@ PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深�
 
   ;; 展示型 read-only buffer 内 tap 也弹键盘，逐 buffer 停用
   (dolist (hook '(dashboard-mode-hook eww-mode-hook nov-mode-hook
-                   Info-mode-hook help-mode-hook))
+                   Info-mode-hook help-mode-hook
+                   org-agenda-mode-hook dired-mode-hook))
     (add-hook hook #'custom/touch-no-keyboard))
+
+  ;; dired tap 文件名（转 mouse-2）默认 other-window 打开会分屏，
+  ;; 改为当前窗打开（目录同理）
+  (with-eval-after-load 'dired
+    (define-key dired-mode-map [mouse-2] #'dired-mouse-find-file))
 
   ;; 响铃以振动实现，默认时长偏长，调短（10–1000ms）
   (when (boundp 'android-keyboard-bell-duration)

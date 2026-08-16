@@ -18,11 +18,22 @@
     (unless (file-exists-p dir)
       (make-directory dir t))))
 
+(defun custom/org--ensure-agenda-file ()
+  "确保 agenda 目录下至少有一个 org 文件（空目录时 agenda 无内容可列）。"
+  (custom/org--ensure-directories)
+  (let ((dir (expand-file-name "agenda" custom:org-directory)))
+    (unless (directory-files dir nil "\\`[^.#].*\\.org\\'")
+      (with-temp-file (expand-file-name "index.org" dir)
+        (insert "#+title: 议程\n\n* 任务\n")))))
+
+(custom/org--ensure-agenda-file)
+
 (use-package org
   :defer t
   :custom
   (org-directory custom:org-directory)
   (org-agenda-files (list (expand-file-name "agenda" custom:org-directory)))
+  (org-agenda-window-setup 'current-window)  ; 手机单窗口
   (org-hide-emphasis-markers t)
   (org-startup-indented t)
   (org-hide-leading-stars t)
@@ -63,6 +74,7 @@
 (defun custom/org-capture--roam-file ()
   "返回本次长期笔记的 Roam 文件路径。"
   (custom/org--ensure-directories)
+  (custom/touch-show-keyboard)
   (setq custom/org-capture--roam-title (read-string "长期笔记标题: "))
   (expand-file-name
    (format "%s.org" (format-time-string "%Y%m%d-%H%M%S"))
@@ -114,8 +126,6 @@
       :defer t
       :commands (org-roam-node-find org-roam-node-insert org-roam-buffer-toggle)
       :init
-      ;; db-autosync 启动即访问 roam 目录，先确保存在
-      (custom/org--ensure-directories)
       ;; 清残留 sqlite3 子进程：Emacs 被系统杀掉时子进程成孤儿，独占
       ;; org-roam.db 文件锁，新连接打开同一 db 时阻塞直至 emacsql-wait
       ;; 超时（30s）。pkill -f 按 db 完整路径匹配，不影响其它 sqlite3。
