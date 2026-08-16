@@ -183,6 +183,11 @@
 (setq word-wrap-by-category t)
 ;; 有选区时输入/粘贴覆盖选区，触屏拖选后直接打字
 (delete-selection-mode 1)
+;; 自动配对括号/引号 + 匹配括号高亮
+(electric-pair-mode 1)
+(show-paren-mode 1)
+;; 长文档滚动更跟手（精确滚动在触屏上无感知收益）
+(setq fast-but-imprecise-scrolling t)
 
 ;; ─── 换行与行号：任何 buffer 软换行 + 编辑区小号行号 ──────────────
 

@@ -44,7 +44,8 @@
   (org-src-tab-acts-natively t)
   (org-src-preserve-indentation t)
   (org-src-window-setup 'current-window)  ; 手机单窗口
-  (org-edit-src-content-indentation 0))
+  (org-edit-src-content-indentation 0)
+  (org-image-actual-width '(300)))  ; 内联图片显示宽度（px），真机可调
 
 ;; ─── capture：inbox / agenda / roam（模板从桌面移植） ───────────────
 
