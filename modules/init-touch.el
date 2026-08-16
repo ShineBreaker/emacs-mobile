@@ -61,6 +61,20 @@
   (interactive)
   (dired user-emacs-directory))
 
+(defconst custom/touch-storage-root "/storage/emulated/0/"
+  "共享存储根（Android 用户数据区，= /sdcard）。")
+
+(defun custom/touch-find-file ()
+  "打开文件：默认落点强制为共享存储根。
+default-directory 是 buffer 局部值，启动期生成的 buffer（scratch/
+dashboard）在 setq-default 前已持有 ~，按钮侧显式绑定才可靠。"
+  (interactive)
+  (let ((default-directory
+          (if (file-directory-p custom/touch-storage-root)
+              custom/touch-storage-root
+            default-directory)))
+    (call-interactively #'find-file)))
+
 (defun custom/touch-no-keyboard ()
   "buffer-local 关闭 tap 弹虚拟键盘（展示型 buffer 用）。"
   (setq-local touch-screen-display-keyboard nil))
@@ -72,7 +86,13 @@
   ;; 可读写；scratch/dashboard 等无本地值的 buffer 继承此默认，
   ;; 文件 buffer 仍默认到自身所在目录，行为不变）
   (when (file-directory-p "/storage/emulated/0/")
-    (setq-default default-directory "/storage/emulated/0/"))
+    (setq-default default-directory "/storage/emulated/0/")
+    ;; 启动期 buffer 在 setq-default 前已生成，补齐局部值（dired 等此后
+    ;; 新 buffer 自然继承默认值）
+    (dolist (buf (buffer-list))
+      (unless (buffer-local-value 'buffer-file-name buf)
+        (with-current-buffer buf
+          (setq default-directory "/storage/emulated/0/")))))
 
   ;; 触屏选项：tap 任意处可唤出系统虚拟键盘
   (setq touch-screen-display-keyboard t

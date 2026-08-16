@@ -94,7 +94,8 @@
   (custom/bar--add-button 'modbar "修"
                           #'custom/touch-toggle-modifier-bar
                           "显示/隐藏修饰键栏")
-  (custom/bar--add-button 'open "开" #'find-file "打开文件 (C-x C-f)")
+  (custom/bar--add-button 'open "开" #'custom/touch-find-file
+                          "打开文件（默认共享存储根）")
   (custom/bar--add-button 'save "存" #'save-buffer "保存 (C-x C-s)")
   (custom/bar--add-button 'copy "复" #'custom/touch-copy "复制选区/当前行")
   (custom/bar--add-button 'paste "贴" #'yank "粘贴 (C-y)")
