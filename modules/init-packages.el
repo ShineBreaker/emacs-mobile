@@ -72,7 +72,9 @@ emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
 ;; · emacsql-sqlite3：sqlite3 CLI 后端（cireu 维护）。
 ;; · magit-section：显式锁 files 防镜像 recipe 漂移（缓存曾混入完整
 ;;   magit，加载后弹 Emergency：内置 transient 旧于 magit 要求）。
-;;   已污染的缓存须删除重建（README §4）。
+;;   magit 仓库源码在 lisp/ 子目录（files 误写根路径会静默 build 出
+;;   空目录，straight 信任已存在目录不再重建）。已污染的缓存须删除
+;;   重建（README §4）。
 (defvar straight-recipe-overrides)
 ;; 键须为 profile 名（默认 profile 为 nil，非 :all）
 (setq straight-recipe-overrides
@@ -83,7 +85,7 @@ emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
                   :type git :host github :repo "cireu/emacsql-sqlite3")
                  (magit-section
                   :type git :host github :repo "magit/magit"
-                  :files ("magit-section.el"))))))
+                  :files ("lisp/magit-section.el"))))))
 
 (let* ((lockfile (expand-file-name "straight/versions/default.el"
                                    straight-base-dir))

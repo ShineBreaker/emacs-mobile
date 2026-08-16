@@ -30,6 +30,10 @@
 
 (use-package org
   :defer t
+  ;; Emacs 30.2 内置 org 9.7 满足全部依赖（org-roam 要求 9.6+），禁用
+  ;; straight 安装 git 版 org——其 build 缺 org-loaddefs.el 且与内置版
+  ;; 并存时版本错乱（Org version mismatch）
+  :straight nil
   :custom
   (org-directory custom:org-directory)
   (org-agenda-files (list (expand-file-name "agenda" custom:org-directory)))
