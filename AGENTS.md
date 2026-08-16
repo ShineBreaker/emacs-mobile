@@ -20,7 +20,7 @@ Android 原生 Emacs 触屏配置（纯触屏、无键盘交互）＋ Termux APK
 3. **字形降级唯一入口** — `custom/glyph`（init-basis）：GUI NF 字形 + tty 回退文字。新增字形禁止再写裸 `(if (display-graphic-p) ...)` 分支；`custom/dashboard--icon`（带 face、nil 契约）是 dashboard 视觉层封装，与 glyph 不同层，保留。
 4. **徽章资产规格** — 字母 32×32、Tab/Esc 64×32。justfile `icons` 配方是唯一生成源，elisp 侧尺寸注释必须与其一致。
 5. **颜色状态文件** — 写侧输出 elisp setq 表单，读侧 `read` 精确解析，读写对称；禁止子串匹配。
-6. **org-roam 数据访问接口** — `custom/org-roam-recent-notes`（init-org）是展示层唯一入口：查询 + 错误降级集中于此，不做全量同步（`org-roam-db-sync` 在 Android FUSE 存储上逐文件读全文算 hash，分钟级阻塞主线程）；索引由 autosync-mode 开启时的一次全量与保存时增量维护。schema/版本变更只改 init-org；展示层禁止直接调 org-roam-db-* / require org-roam。
+6. **org-roam 数据访问接口** — `custom/org-roam-recent-notes`（init-org）是展示层唯一入口：查询 + 错误降级集中于此；任何启动/查询路径不做全量同步（`org-roam-db-sync` 在 Android FUSE 存储上逐文件读全文算 hash，分钟级阻塞主线程；db 被残留 sqlite3 锁住时每条查询还要各等满 `emacsql-global-timeout`，故降额为 3s）。索引仅由保存时增量维护（`custom/org-roam-update-on-save`；不开 `org-roam-db-autosync-mode`，其开启时自带一次全量）；全量重建手动 `M-x org-roam-db-sync`。schema/版本变更只改 init-org；展示层禁止直接调 org-roam-db-* / require org-roam。
 
 ## 改动后验证
 
@@ -43,4 +43,4 @@ Android 原生 Emacs 触屏配置（纯触屏、无键盘交互）＋ Termux APK
 ## 当前状态
 
 - C1（dashboard 拆层）、C2（图标管线）、C3（字形统一）、C4（声明显式化）、C5（颜色状态对称）均已落地。
-- 遗留观察项：early-init/init.el 部署转发双份镜像判定未收敛（工作正常，改动敏感）；justfile/scripts 与 Elisp 层概念重复（图标清单、字体、apk 重签）待评估；straight 的 use-package 集成注入 `eval-when-compile (load "org-roam")`，从源码编译 init-org 时会加载 org-roam 并触发 autosync 的一次全量同步（pull 后首启的 compile-modules 空闲编译窗口会感知到）。
+- 遗留观察项：early-init/init.el 部署转发双份镜像判定未收敛（工作正常，改动敏感）；justfile/scripts 与 Elisp 层概念重复（图标清单、字体、apk 重签）待评估；straight 的 use-package 集成注入 `eval-when-compile (load "org-roam")`，从源码编译 init-org 时会加载 org-roam（autosync 已剥离，仅包加载本身，秒级）。

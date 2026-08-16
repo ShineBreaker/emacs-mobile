@@ -108,11 +108,17 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 
 - **安装报 `INSTALL_FAILED_SHARED_USER_INCOMPATIBLE`**：设备上有包占着 `com.termux` 共享用户且签名不同，最常见原因是 **Termux 插件残留**（Termux:API/Widget/Boot/Float 同样声明 `sharedUserId="com.termux"`，只卸主应用不够）。把 Termux 系应用全部卸载（必要时重启手机），再按先 Termux 后 Emacs 的顺序安装。
 - **虚拟键盘遮挡**：tap 任意处唤出（`touch-screen-display-keyboard t`）；键盘与 magit/transient 的冲突已知，本项目未装 magit。
-- **启动弹 `Emergency (magit): Magit requires 'transient' >= 0.13 ...`**：一期旧缓存曾把完整 magit 混入 `magit-section` 的 build（org-roam 的依赖），加载后撞上 Emacs 30.2 内置的旧版 transient。修复（Termux 里执行后重启 Emacs）：
+- **启动弹 `Emergency (magit): Magit requires 'transient' >= 0.13 ...`**：org-roam 依赖的 `magit-section`（取 magit 仓库 HEAD）自身 require 新版 transient，Emacs 30.2 内置旧版触发。配置已装 GNU ELPA stable `transient` 覆盖内置（init-org），新克隆环境不再出现；旧环境仍弹出则多为缓存残留，Termux 里执行后重启 Emacs：
   ```sh
   rm -rf ~/.cache/emacs/straight/build/magit-section ~/.cache/emacs/straight/build/magit
   ```
-  配置已显式锁定 `magit-section` recipe 只取 `magit-section.el`，重建后不会再混入。
+- **启动后无响应/卡死**：先看 echo area 与 `*Warnings*`（`⛔ Error (use-package <模块>/<阶段>)` 直接指明出错模块与阶段）。疑似 org-roam 库卡住时，在 Termux 里三件套取证：
+  ```sh
+  ps -ef | grep -E "emacs|sqlite3"   # 残留 sqlite3 子进程 = 持库锁
+  ls -la ~/.cache/emacs/             # org-roam.db-journal 存在 = 写事务未提交
+  top -n 1 | head                     # emacs CPU 满载 = elisp 长计算
+  ```
+  库损坏或锁死时删 `~/.cache/emacs/org-roam.db` 重建：保存笔记后自动增量补录，或 `M-x org-roam-db-sync` 手动全量（有进度、可预期）。
 - **启动加载 org 时提示 `WARNING: No org-loaddefs.el file ...` 并停顿数秒**：缓存里混入了 git 版 org（org-roam 的依赖链经 org-elpa recipe 拉入，`:straight nil` 拦不住依赖层），其 build 缺 make 产物 org-loaddefs.el，且排在 load-path 首位挤掉内置 org。修复（Termux 里执行后重启 Emacs）：
   ```sh
   rm -rf ~/.cache/emacs/straight/build/org ~/.cache/emacs/straight/repos/org

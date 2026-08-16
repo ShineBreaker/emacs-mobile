@@ -123,10 +123,18 @@
   (if (not sqlite3)
       (display-warning 'init-org
                        "sqlite3 CLI 不可用，org-roam 未启用（Termux: pkg install sqlite3）")
-    (use-package emacsql)
+    (use-package emacsql
+      :init
+      ;; defvar 变量，先设再加载（defvar 不覆盖已绑定值）。3s：db 被
+      ;; 残留进程锁住时查询快速失败降级，默认 30s 在触屏上无法中断
+      (setq emacsql-global-timeout 3))
     ;; connector 是运行时选择，org-roam 声明依赖里没有 emacsql-sqlite3，
     ;; 须显式安装
     (use-package emacsql-sqlite3)
+    ;; magit-section（org-roam 依赖，magit 仓库 HEAD）require transient
+    ;; >= 0.13，Emacs 30.2 内置旧版会弹 Emergency，装 GNU ELPA stable
+    ;; 版进 load-path 前部覆盖
+    (use-package transient)
     (use-package org-roam
       :defer t
       :commands (org-roam-node-find org-roam-node-insert org-roam-buffer-toggle)
@@ -145,7 +153,16 @@
        (expand-file-name ".cache/emacs/org-roam.db" custom:data-home))
       (org-roam-completion-everywhere nil)
       :config
-      (org-roam-db-autosync-mode))))
+      ;; 不开 org-roam-db-autosync-mode：其开启时的一次全量
+      ;; org-roam-db-sync 在真机 FUSE 共享存储上分钟级阻塞主线程（db
+      ;; 被锁时每条查询还要各等满超时），只取其增量部分——保存后更新
+      ;; 该文件索引；全量重建手动 M-x org-roam-db-sync（有进度可预期）
+      (defun custom/org-roam-update-on-save ()
+        "保存 org-roam 文件后增量更新索引。"
+        (when (org-roam-file-p (buffer-file-name))
+          (with-demoted-errors "org-roam 索引更新失败: %S"
+            (org-roam-db-update-file))))
+      (add-hook 'after-save-hook #'custom/org-roam-update-on-save))))
 
 ;; ─── org-roam 数据访问接口（展示层唯一入口） ─────────────────────────
 ;; 查询 + 错误降级集中于此：org-roam schema/版本变更只改本模块，
