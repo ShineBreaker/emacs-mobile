@@ -112,6 +112,7 @@
     (which-key-show-next-page-cycle)))
 
 (use-package which-key
+  :defer t
   :custom (which-key-idle-delay 0.6)
           ;; 底部弹窗（触屏视线近）
           (which-key-side-window-location 'bottom)
@@ -121,10 +122,11 @@
           ;; 多层前缀启用官方 paging：弹窗内 C-h n/p 翻页（mode-line
           ;; 「»」按钮为触摸翻页入口，见 init-ui.el）
           (which-key-paging-prefixes '("C-x" "C-c" "C-h" "M-s" "M-g"))
+  :init
+  ;; 空闲才加载并开启：包加载与中文描述注册不占启动时间
+  (run-with-idle-timer 1 nil #'which-key-mode)
   :config
-  (custom/which-key-apply-descriptions)
-  ;; 延迟到启动完成后开启，避免拖慢 init
-  (add-hook 'emacs-startup-hook #'which-key-mode))
+  (custom/which-key-apply-descriptions))
 
 (provide 'init-completion)
 ;;; init-completion.el ends here

@@ -57,6 +57,13 @@
            (custom/dashboard--path-initials (file-name-directory el))
            (file-name-nondirectory el))))
 
+;; ─── agenda/roam 延迟填充 ───────────────────────────────────────────
+;; 两段生成要拉起 org-agenda/org-roam 全家（约占启动大头），冷启动首屏
+;; 跳过，进入空闲后补齐刷新（recentf/banner 不受影响，首屏即有）。
+
+(defvar custom/dashboard--warm nil
+  "t 时 agenda/roam 段直接生成（首屏后的补齐刷新）。")
+
 ;; ─── roam 条目：最近修改的长期笔记 ──────────────────────────────────
 
 (declare-function org-roam-db-query "org-roam")
@@ -64,29 +71,45 @@
 
 (defun custom/dashboard-insert-roam (list-size)
   "最近修改的 Roam 笔记 LIST-SIZE 条；db 不可用时整块降级为 No items。"
-  (let* ((rows (ignore-errors
-                (require 'org-roam)
-                ;; 显式增量同步：autosync 不索引外部新到文件（Syncthing 场景）
-                (org-roam-db-sync)
-                ;; 反引号 vector：方括号字面量内 `,list-size' 才做运行时插值
-                (org-roam-db-query
-                 `[:select [nodes:title nodes:file]
-                   :from nodes
-                   :join files :on (= nodes:file files:file)
-                   :order-by (desc files:mtime)
-                   :limit ,list-size])))
-         (items (mapcar (lambda (row)
-                          (cons (or (nth 0 row)
-                                    (file-name-nondirectory (nth 1 row)))
-                                (nth 1 row)))
-                        rows)))
-    (dashboard-insert-section
-     "Recent Roam Notes:"
-     items
-     list-size
-     'roam nil
-     `(lambda (&rest _) (find-file-existing ,(cdr el)))
-     (format "%s" (car el)))))
+  (when custom/dashboard--warm
+    (let* ((rows (ignore-errors
+                  (require 'org-roam)
+                  ;; 显式增量同步：autosync 不索引外部新到文件（Syncthing 场景）
+                  (org-roam-db-sync)
+                  ;; 反引号 vector：方括号字面量内 `,list-size' 才做运行时插值
+                  (org-roam-db-query
+                   `[:select [nodes:title nodes:file]
+                     :from nodes
+                     :join files :on (= nodes:file files:file)
+                     :order-by (desc files:mtime)
+                     :limit ,list-size])))
+           (items (mapcar (lambda (row)
+                            (cons (or (nth 0 row)
+                                      (file-name-nondirectory (nth 1 row)))
+                                  (nth 1 row)))
+                          rows)))
+      (dashboard-insert-section
+       "Recent Roam Notes:"
+       items
+       list-size
+       'roam nil
+       `(lambda (&rest _) (find-file-existing ,(cdr el)))
+       (format "%s" (car el))))))
+
+(defun custom/dashboard-insert-agenda-deferred (list-size)
+  "agenda 条目（冷启动跳过，见 `custom/dashboard--warm'）。"
+  (when custom/dashboard--warm
+    (dashboard-insert-agenda list-size)))
+
+(defun custom/dashboard--warm-fill ()
+  "补齐 agenda/roam 段并刷新仪表盘（空闲触发，不抢焦点）。"
+  (setq custom/dashboard--warm t)
+  (let ((buf (get-buffer dashboard-buffer-name)))
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (dashboard-insert-startupify-lists t)))))
+
+(run-with-idle-timer 4 nil #'custom/dashboard--warm-fill)
 
 ;; ─── 配置与启动 ─────────────────────────────────────────────────────
 
@@ -123,6 +146,8 @@
 
 (setf (alist-get 'recents dashboard-item-generators)
       #'custom/dashboard-insert-recents)
+(setf (alist-get 'agenda dashboard-item-generators)
+      #'custom/dashboard-insert-agenda-deferred)
 (setf (alist-get 'roam dashboard-item-generators)
       #'custom/dashboard-insert-roam)
 

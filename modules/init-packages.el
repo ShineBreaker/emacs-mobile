@@ -87,16 +87,19 @@ emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
 
 (let* ((lockfile (expand-file-name "straight/versions/default.el"
                                    straight-base-dir))
-       (alist (when (file-exists-p lockfile)
-                (with-temp-buffer
-                  (insert-file-contents lockfile)
-                  (ignore-errors (read (current-buffer)))))))
+       (existing (when (file-exists-p lockfile)
+                   (with-temp-buffer
+                     (insert-file-contents lockfile)
+                     (ignore-errors (read (current-buffer))))))
+       (alist (copy-tree existing)))
   ;; 幂等合入，保留既有锁定条目
   (dolist (pin custom/straight-pinned-versions)
     (setf (alist-get (car pin) alist nil nil #'equal) (cdr pin)))
-  (make-directory (file-name-directory lockfile) t)
-  (with-temp-file lockfile
-    (prin1 alist (current-buffer))))
+  ;; 内容无变化不写盘（省一次启动 IO）
+  (unless (equal alist existing)
+    (make-directory (file-name-directory lockfile) t)
+    (with-temp-file lockfile
+      (prin1 alist (current-buffer)))))
 
 ;; ─── straight bootstrap ─────────────────────────────────────────────
 

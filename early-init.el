@@ -13,11 +13,15 @@
 ;; 执行下方本体。
 ;;
 ;; 本体优化项：禁用 package.el（用 straight 管理包）、提高 GC 阈值
-;; （启动后由 init-basis 复位）、exec-path 前置 Termux bin。
+;; （启动后由 init-basis 复位）、绕过文件名处理器（同前）、frame 参数
+;; 抑制 menu/tool/scroll bar（先建后拆的浪费，Android 的 tool-bar 由
+;; init-bar 显式再开）、exec-path 前置 Termux bin。
 
 ;;; Code:
 
-(setq load-prefer-newer nil)
+;; modules/ 有后台补编译的 .elc：源码更新时必须优先加载新源码
+;; （否则 git pull 后的首次启动仍跑旧 .elc）
+(setq load-prefer-newer t)
 
 (defconst custom:termux-repo
   "/data/data/com.termux/files/home/.config/emacs/"
@@ -34,8 +38,18 @@
 
   ;; ── 本体（仓库内运行 / 桌面沙箱） ──────────────────────────────
 
-  ;; 禁用 package.el 自动初始化（使用 straight 管理包）
-  (setq package-enable-at-startup nil)
+  ;; 禁用 package.el 自动初始化（使用 straight 管理包）；跳过 site-start/
+  ;; default.el（真机无，桌面沙箱有 guix site-lisp）
+  (setq package-enable-at-startup nil
+        inhibit-default-init t
+        site-run-file nil)
+
+  ;; frame 参数抑制：初始 frame 不建 menu/tool/scroll bar（Android 的
+  ;; tool-bar 由 init-bar 显式开启，避免先建默认栏再拆）
+  (dolist (param '((menu-bar-lines . 0) (tool-bar-lines . 0)
+                   (vertical-scroll-bars . nil)
+                   (horizontal-scroll-bars . nil)))
+    (add-to-list 'default-frame-alist param))
 
   ;; exec-path 前置：Android 注入 Termux bin 以获得 git/rg 等命令
   (when (eq system-type 'android)
@@ -45,7 +59,10 @@
         (add-to-list 'exec-path termux-bin))))
 
   ;; 启动性能优化（启动后由 init-basis 复位）
+  (defvar custom--startup-file-name-handlers file-name-handler-alist
+    "启动前原 file-name-handler-alist（init-basis 复位用）。")
   (setq gc-cons-threshold most-positive-fixnum
-        gc-cons-percentage 0.6))
+        gc-cons-percentage 0.6
+        file-name-handler-alist nil))
 
 ;;; early-init.el ends here
