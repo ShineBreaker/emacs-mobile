@@ -61,6 +61,10 @@
   (interactive)
   (find-file (expand-file-name "init.el" user-emacs-directory)))
 
+(defun custom/touch-no-keyboard ()
+  "buffer-local 关闭 tap 弹虚拟键盘（展示型 buffer 用）。"
+  (setq-local touch-screen-display-keyboard nil))
+
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
 (when custom:android-p
@@ -69,6 +73,16 @@
         touch-screen-preview-select t
         touch-screen-word-select t
         touch-screen-extend-selection t)
+
+  ;; 全局 t 的副作用：展示型 read-only buffer 内 tap 也弹键盘（手册
+  ;; 6.2：该变量支持 buffer-local，逐 buffer 停用）
+  (dolist (hook '(dashboard-mode-hook eww-mode-hook nov-mode-hook
+                   Info-mode-hook help-mode-hook))
+    (add-hook hook #'custom/touch-no-keyboard))
+
+  ;; 响铃以振动实现（手册 H.6），默认时长偏长，调短减少打扰（10–1000ms）
+  (when (boundp 'android-keyboard-bell-duration)
+    (setq android-keyboard-bell-duration 30))
 
   ;; 触屏无菜单交互场景，关闭菜单栏省一行（命令走 tool-bar / M-x）
   (menu-bar-mode -1)

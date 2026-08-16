@@ -73,46 +73,60 @@ maple-font-url := "https://github.com/subframe7536/maple-font/releases/download/
 # 一键补全配置侧依赖：字体 → 图标 → 插件预构建
 deps: font icons packages
 
-# 生成 tool-bar 图标（Maple NF 字形 → 72px PNG，随仓库分发；缺失才重建）。
-# 72px 为 2× 超采样资产：显示端 spec :height 36 缩放（整数倍下采样），
-# 比历史 56px 非整数缩放清晰；改显示尺寸不须重新生成（asset=2×display）。
-# 桌面依赖 rsvg-convert（librsvg）与本机 Maple 字体；中灰填充双主题通吃。
+# 生成 tool-bar 图标（Papirus symbolic 矢量，随仓库分发；缺失才重建）。
+# SVG 直渲为主（Android 官方构建带 librsvg，矢量任意缩放），运行端按
+# 主题重着色（替换 ColorScheme-Text 的 CSS 色，见 init-bar.el）。
+# PNG 为 72px 2× 超采样兜底（中灰 #808080 双主题通吃）：无 librsvg 的
+# 构建上 find-image 回退。桌面依赖 rsvg-convert；上游 GPL-3.0，
+# 来源与许可见 data/icons/README.md。
+papirus_tag := "20260801"
 icons:
     #!/usr/bin/env bash
     set -euo pipefail
-    wanted="modbar save copy cut paste undo redo search recenter theme config dashboard"
+    base="https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/{{papirus_tag}}/Papirus/24x24/symbolic"
+    spec=(
+        "modbar devices/input-keyboard"     "save actions/document-save"
+        "copy actions/edit-copy"            "cut actions/edit-cut"
+        "paste actions/edit-paste"          "undo actions/edit-undo"
+        "redo actions/edit-redo"            "search actions/edit-find"
+        "recenter actions/format-justify-center"
+        "theme status/night-light"          "config actions/lucide-wrench"
+        "dashboard actions/view-grid"
+    )
     missing=""
-    for n in $wanted; do [[ -f "data/icons/$n.png" ]] || missing="$missing $n"; done
+    for item in "${spec[@]}"; do
+        read -r name _ <<<"$item"
+        [[ -f "data/icons/$name.svg" ]] || missing="$missing $name"
+    done
     if [[ -z "$missing" ]]; then
         echo "data/icons/ 图标已齐（随仓库分发），跳过"
         exit 0
     fi
     command -v rsvg-convert >/dev/null || { echo "需要 rsvg-convert (librsvg)"; exit 1; }
-    command -v fc-list >/dev/null || { echo "需要 fontconfig (fc-list)"; exit 1; }
-    # 不用 grep -q：-q 命中即退出会让 fc-list 吃 EPIPE，pipefail 下误报
-    fc-list :family | grep -i "maple" >/dev/null || { echo "先运行 just font 安装字体"; exit 1; }
     mkdir -p data/icons
-    tmp=$(mktemp)
-    trap 'rm -f "$tmp"' EXIT
-    # 画布 72 / 字号 54（0.75，NF 图标字形方形无降部，比历史 0.71 饱满）
-    # y=54 为 baseline 下移的光学居中（dominant-baseline 在 librsvg 不可靠）。
-    # 同时落 .svg 矢量副本（真机验证 text 渲染后可切 :type svg，见 PLAN §15）。
-    canvas=72; font=54; base=54
-    spec=(
-        "modbar &#xF11C;"  "save &#xF0C7;"   "copy &#xF0C5;"
-        "cut &#xF0C4;"     "paste &#xF0EA;"  "undo &#xF0E2;"
-        "redo &#xF01E;"    "search &#xF002;" "recenter &#xF037;"
-        "theme &#xF042;"   "config &#xF013;" "dashboard &#xF021;"
-    )
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    # 仓库里多数 symbolic 图标是符号链接（raw URL 返回目标路径文本而非
+    # SVG），须逐跳跟随解析到真实文件
+    fetch_svg() {
+        local url="$1" out="$2" content tries=0
+        while :; do
+            content=$(curl -fsSL --retry 3 "$url")
+            [[ "$content" == \<* ]] && { printf '%s\n' "$content" > "$out"; return 0; }
+            url="${url%/*}/$content"
+            tries=$((tries + 1)); (( tries > 5 )) && return 1
+        done
+    }
     for item in "${spec[@]}"; do
-        read -r name glyph <<<"$item"
-        printf '%s\n' \
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"$canvas\" height=\"$canvas\"><text x=\"$((canvas/2))\" y=\"$base\" font-family=\"Maple Mono NF CN\" font-size=\"$font\" fill=\"#808080\" text-anchor=\"middle\">$glyph</text></svg>" \
-            > "$tmp"
-        rsvg-convert -w $canvas -h $canvas "$tmp" > "data/icons/$name.png"
-        cp "$tmp" "data/icons/$name.svg"
+        read -r name path <<<"$item"
+        fetch_svg "$base/${path}-symbolic.svg" "$tmp/$name.svg"
+        # PNG 兜底：ColorScheme-Text 重着色中灰后 72px 光栅化（2× 显示尺寸）
+        sed 's/\(ColorScheme-Text { color:\)#[0-9a-fA-F]*/\1#808080/' \
+            "$tmp/$name.svg" > "$tmp/$name-gray.svg"
+        rsvg-convert -w 72 -h 72 "$tmp/$name-gray.svg" > "data/icons/$name.png"
+        cp "$tmp/$name.svg" "data/icons/$name.svg"
     done
-    echo "已生成 data/icons/{${wanted// /,}}.png + .svg (${canvas}px 2× 超采样)"
+    echo "已生成 12 枚 Papirus symbolic .svg + 72px 兜底 .png"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。

@@ -1,4 +1,4 @@
-;;; init-bar.el --- 官方 tool-bar：全局命令按钮（PNG 图标，Android 底部） -*- lexical-binding: t; -*-
+;;; init-bar.el --- 官方 tool-bar：全局命令按钮（Papirus 图标，Android 底部） -*- lexical-binding: t; -*-
 
 ;; SPDX-FileCopyrightText: 2026 BrokenShine <xchai404@gmail.com>
 ;; SPDX-License-Identifier: MIT
@@ -9,17 +9,17 @@
 ;;   tap 按钮会把 bar 的 window 选中，复制/剪切/撤销/切缓冲区等命令
 ;;   全部落到 *mobile-bar* 自身（真机踩坑）；官方 tool-bar 是 frame
 ;;   部件，tap 不改选中窗口，机制上根治。
-;; · 图标 = Maple NF 字形渲染的 56px PNG（data/icons/，中灰双主题
-;;   通吃，`just icons` 幂等重建）；`tool-bar-add-item' 只认 etc/images
-;;   内置图标，自定义 PNG 须手写 menu-item :image。
+;; · 图标 = Papirus symbolic 矢量（data/icons/*.svg，GPL-3.0，`just
+;;   icons' 重建）：Android 官方构建带 librsvg，SVG 直渲任意缩放，
+;;   加载时把 ColorScheme-Text 的 CSS 色替换为当前主题色（深浅色各自
+;;   defcustom）；无 librsvg 的构建回退 72px 中灰 PNG 兜底。
 ;; · Android 底部（thumb 区）；按钮触控面积用 margin 放大。
 
 ;;; Code:
 
 (defcustom custom/bar-icon-height 36
-  "tool-bar 图标显示高度（像素）。资产为 2× 超采样 PNG（72px），
-spec :height 整数倍下采样保清晰；常规调整显示尺寸不须重新生成
-资产。真机按体感调整。"
+  "tool-bar 图标显示高度（像素）。SVG 矢量任意缩放；PNG 兜底资产为
+2× 超采样（72px），:height 整数倍下采样保清晰。真机按体感调整。"
   :type 'integer
   :group 'emacs-mobile)
 
@@ -28,15 +28,50 @@ spec :height 整数倍下采样保清晰；常规调整显示尺寸不须重新�
   :type 'integer
   :group 'emacs-mobile)
 
+(defcustom custom/bar-icon-color-light "#3d3d3d"
+  "浅色主题下的图标色（Papirus symbolic 重着色目标）。"
+  :type 'string
+  :group 'emacs-mobile)
+
+(defcustom custom/bar-icon-color-dark "#c8c8c8"
+  "深色主题下的图标色（Papirus symbolic 重着色目标）。"
+  :type 'string
+  :group 'emacs-mobile)
+
+(defun custom/bar--icon-color ()
+  "当前主题对应的图标色（主题状态由 init-ui 管理，未定时按浅色）。"
+  (if (and (boundp 'custom/color-scheme-current-mode)
+           (eq custom/color-scheme-current-mode 'dark))
+      custom/bar-icon-color-dark
+    custom/bar-icon-color-light))
+
+(defun custom/bar--image (key)
+  "构造 KEY 按钮的图标图像：SVG 重着色直渲优先，PNG 兜底。"
+  (let* ((name (symbol-name key))
+         (svg (expand-file-name (concat name ".svg")
+                                (expand-file-name "data/icons"
+                                                  user-emacs-directory))))
+    (or (and (image-type-available-p 'svg)
+             (file-exists-p svg)
+             (ignore-errors
+               (create-image
+                (replace-regexp-in-string
+                 "ColorScheme-Text { color:#[0-9a-fA-F]\\{6\\}"
+                 (concat "ColorScheme-Text { color:" (custom/bar--icon-color))
+                 (with-temp-buffer
+                   (insert-file-contents svg)
+                   (buffer-string)))
+                'svg t :height custom/bar-icon-height)))
+        (find-image
+         `((:type png :file ,(concat name ".png")
+                  :height ,custom/bar-icon-height))))))
+
 (defun custom/bar--add-button (key label command help)
-  "向 `tool-bar-map' 添加使用 data/icons/<KEY>.png 图标的按钮。"
+  "向 `tool-bar-map' 添加使用 data/icons/<KEY> 图标的按钮。"
   (define-key tool-bar-map (vector key)
     `(menu-item ,label ,command
                 :help ,help
-                :image ,(find-image
-                         `((:type png :file ,(concat (symbol-name key)
-                                                     ".png")
-                                  :height ,custom/bar-icon-height))))))
+                :image ,(custom/bar--image key))))
 
 (defun custom/bar--install ()
   "安装底部 tool-bar 命令按钮（Android 启动时调用，桌面可手动调用验证）。"
@@ -77,7 +112,12 @@ spec :height 整数倍下采样保清晰；常规调整显示尺寸不须重新�
   (tool-bar-mode 1))
 
 (when custom:android-p
-  (custom/bar--install))
+  (custom/bar--install)
+  ;; 主题切换后重装：SVG 图标按主题重着色（PNG 兜底为中灰，重装无害）
+  (advice-add 'custom/color-scheme-apply-theme :after
+              (lambda (&rest _)
+                (when (display-graphic-p)
+                  (custom/bar--install)))))
 
 (provide 'init-bar)
 ;;; init-bar.el ends here

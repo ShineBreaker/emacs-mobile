@@ -4,7 +4,7 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / UI / 触屏 / 工具栏 / 补全 / Org / 仪表盘 / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 设计依据见 PLAN.md（不入库）。交互回归**官方组件分层**（自实现 side window 工具栏因 tap 会把工具栏 buffer 选中、命令落到工具栏自身而废弃）：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 保存/复制/剪切/粘贴/撤销/重做/搜索/回中/深浅主题/打开配置/仪表盘，图标为 Maple Nerd 字形渲染的 PNG（`just icons` 幂等重建，中灰双主题通吃；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载 buffer/窗口控制——✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）、换 切换缓冲区。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
+> 设计依据见 PLAN.md（不入库）。交互回归**官方组件分层**（自实现 side window 工具栏因 tap 会把工具栏 buffer 选中、命令落到工具栏自身而废弃）：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 保存/复制/剪切/粘贴/撤销/重做/搜索/回中/深浅主题/打开配置/仪表盘，图标为 [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) symbolic 矢量 SVG（加载时按深浅主题重着色直渲，无 librsvg 构建回退中灰 PNG 兜底；`just icons` 幂等重建，上游 GPL-3.0，来源见 data/icons/README.md；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载 buffer/窗口控制——✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）、换 切换缓冲区。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
 
 ## 1. APK 选择
 
@@ -73,8 +73,8 @@ Termux 前置依赖：`pkg install just fontconfig`（just 提供 `just` 命令�
 just deps    # 字体 → 图标 → 插件预构建，一条命令补全
 ```
 
-- `just font`：下载 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（中英等宽 + Nerd 图标，工具栏字形来源）→ Android 装到 Emacs home 的 `fonts/`（sfnt-android 启动时枚举，装后重启 Emacs 生效），桌面装到 fontconfig 用户目录；已装则跳过
-- `just icons`：生成 tool-bar 图标（Maple 字形 → 56px PNG，`data/icons/` 已随仓库分发，真机无需执行；缺失时在装有 librsvg `rsvg-convert` 的桌面重建）
+- `just font`：下载 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（中英等宽主字体）→ Android 装到 Emacs home 的 `fonts/`（sfnt-android 启动时枚举，装后重启 Emacs 生效），桌面装到 fontconfig 用户目录；已装则跳过
+- `just icons`：生成 tool-bar 图标（Papirus symbolic SVG + 72px PNG 兜底，`data/icons/` 已随仓库分发，真机无需执行；缺失时在装有 librsvg `rsvg-convert` 的桌面重建）
 - `just packages`：跑一遍完整 init 预构建全部插件（真机缓存 `~/.cache/emacs/straight`，桌面 `.sandbox/`）
 
 首次启动 straight 自动走镜像装包（耗时数分钟）。org 笔记目录：配置探测 `/storage/emulated/0/Data/Syncthing/notebook/org/`，存在则使用；不存在则回退 `~/.emacs.d/org/`（桌面沙箱全功能测试用）。
@@ -112,7 +112,13 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
   rm -rf ~/.cache/emacs/straight/build/magit-section ~/.cache/emacs/straight/build/magit
   ```
   配置已显式锁定 `magit-section` recipe 只取 `magit-section.el`，重建后不会再混入。
-- **后台被杀**：系统设置中锁定后台 / 关闭对 Emacs 的电池优化。
+- **后台被杀**：系统设置中锁定后台 / 关闭对 Emacs 的电池优化；厂商定制系统的额外限制见 [dontkillmyapp.com](https://dontkillmyapp.com/)。
+- **Termux 子进程被周期性杀掉（Android 12+）**：系统「幽灵进程杀手」每 5 分钟检查并终止 CPU 占用最高的后台子进程——straight 的 git、org-roam 的 sqlite3 CLI、consult-ripgrep 都可能中招（表现为间歇性失败、db 查询报错）。用 adb 关闭（手机开启「USB 调试」后在电脑执行）：
+  ```sh
+  adb shell "settings put global settings_enable_monitor_phantom_procs false"
+  ```
+- **init 出错无法启动（官方逃生通道）**：Android 无命令行参数，可用系统设置里 Emacs 的偏好设置界面以 `--quick`（跳过 init）或 `--debug-init` 启动（Android 7+：设置 → 应用 → Emacs 的应用信息页入口；旧系统：桌面「Emacs options」图标，因厂商而异）。若报转储文件（dump file）损坏，同一界面可删除 Emacs 文件目录中的转储文件修复；也可用任意文件管理器经 Emacs 导出的 documents provider 直接改名/删除 init 文件。
+- **从其他 app 打开文件没反应**：emacsclient 包装程序要求 Emacs 已启动服务器（未启动 server 的 Emacs 会在首次打开文件时被拉起，但若该会话没跑 `(server-start)`，之后的调用会失败）；org-protocol 链接同理。
 - **底部栏切换闪动**：方案 D 切换会重算 frame 布局，若真机上明显需迭代。
 
 ## 桌面开发期验证（沙箱，不污染真实配置）
