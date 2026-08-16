@@ -170,17 +170,20 @@
    'mouse-face 'highlight
    'help-echo "当前行回中"))
 
-;; 行首 = buffer 控制；右端 = 回中（Emacs 30+ 的 right-align 构件）
+;; 左端 = 状态信息；右端 = 按钮组：符号 `mode-line-format-right-align'
+;; （须裸符号，非 (:eval …)，format-mode-line 按变量处理）之后的构造
+;; 整体右对齐，从右到左：✕ 关闭、换 切缓冲区、中 回中
 (setq-default mode-line-format
               '("%e"
-                (:eval (custom/mode-line--close-button))
-                (:eval (custom/mode-line--switch-button))
                 (:eval (if (buffer-modified-p) "●" "·"))
                 " "
                 mode-name
                 "  "
                 (:eval (custom/mode-line--percent))
-                (right-align (:eval (custom/mode-line--recenter-button)))))
+                mode-line-format-right-align
+                (:eval (custom/mode-line--recenter-button))
+                (:eval (custom/mode-line--switch-button))
+                (:eval (custom/mode-line--close-button))))
 
 ;; ─── 换行与行号（2026-08-16）：任何 buffer 软换行 + 编辑区小号行号 ──
 
