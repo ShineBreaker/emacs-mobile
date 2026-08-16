@@ -51,16 +51,18 @@
   "当前颜色方案模式（\='light 或 \='dark）。")
 
 (defun custom/color-scheme-read-state ()
-  "从状态文件读取当前模式，返回 \='light 或 \='dark，不可用时返回 nil。"
+  "从状态文件读取当前模式，返回 \='light 或 \='dark，不可用时返回 nil。
+读侧与 `custom/color-scheme-save-state' 的写入格式对称：read 解析
+`(setq ...)' 表单，精确取第二元素，不做子串匹配。"
   (condition-case err
       (when (file-exists-p custom/color-scheme-state-file)
-        (let ((content (with-temp-buffer
-                         (insert-file-contents custom/color-scheme-state-file)
-                         (buffer-string))))
-          (cond
-           ((string-match-p "dark" content) 'dark)
-           ((string-match-p "light" content) 'light)
-           (t nil))))
+        (let ((form (with-temp-buffer
+                      (insert-file-contents custom/color-scheme-state-file)
+                      (goto-char (point-min))
+                      (read (current-buffer)))))
+          (pcase form
+            (`(setq custom/color-scheme-current-mode (quote ,mode)) mode)
+            (_ nil))))
     (error
      (message "[color-scheme] 无法读取状态文件: %s" (error-message-string err))
      nil)))

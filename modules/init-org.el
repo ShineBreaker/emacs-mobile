@@ -69,6 +69,7 @@
 
 (defvar org-capture-templates nil)  ; org-capture.el（模板在其加载后设置）
 (declare-function org-agenda-files "org-agenda")
+(declare-function custom/touch-show-keyboard "init-touch")
 
 (defun custom/org-capture--agenda-file ()
   "返回本次 capture 的目标 agenda 文件（取 `org-agenda-files' 首项）。"

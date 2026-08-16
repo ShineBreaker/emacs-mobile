@@ -72,7 +72,7 @@
   "取 data/icons/mod-NAME 徽章图像。
 PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深浅主题自动
 适配；PNG alpha 在 Lucid 露白底，仅兜底）。
-位图不支持运行时缩放，尺寸烤在资产（字母 28×28、Tab/Esc 49×28）。"
+位图不支持运行时缩放，尺寸烤在资产（字母 32×32、Tab/Esc 64×32）。"
   (find-image
    `((:type pbm :file ,(concat "mod-" name ".pbm"))
      (:type png :file ,(concat "mod-" name ".png")))))
