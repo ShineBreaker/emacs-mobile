@@ -68,6 +68,12 @@
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
 (when custom:android-p
+  ;; 打开文件/文件夹的默认落点 = 共享存储根（授权「所有文件访问」后
+  ;; 可读写；scratch/dashboard 等无本地值的 buffer 继承此默认，
+  ;; 文件 buffer 仍默认到自身所在目录，行为不变）
+  (when (file-directory-p "/storage/emulated/0/")
+    (setq-default default-directory "/storage/emulated/0/"))
+
   ;; 触屏选项：tap 任意处可唤出系统虚拟键盘
   (setq touch-screen-display-keyboard t
         touch-screen-preview-select t
