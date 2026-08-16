@@ -107,6 +107,9 @@
                           "打开配置文件夹（dired）")
   (custom/bar--add-button 'dashboard "盘" #'dashboard-open
                           "打开/刷新仪表盘")
+  ;; 稀疏 keymap 按插入逆序存储、工具栏按存储序渲染（真机实测顺序
+  ;; 反了），反转一次使显示顺序 = 上方定义顺序（修=最左）
+  (setq tool-bar-map (cons 'keymap (reverse (cdr tool-bar-map))))
   (tool-bar-mode 1))
 
 (when custom:android-p

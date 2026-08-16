@@ -118,13 +118,18 @@ icons:
     for item in "${spec[@]}"; do
         read -r name path <<<"$item"
         fetch_svg "$base/${path}-symbolic.svg" "$tmp/$name.svg"
-        # PNG 兜底：ColorScheme-Text 重着色中灰后 72px 光栅化（2× 显示尺寸）
+        # 垂直防手势垫：画布 24→30、内容顶对齐（xMidYMin），底部留 6 单位
+        # 死区——:height 36 显示下约 7px，避开全面屏上滑手势区；图标本体
+        # 约 29px（横向不受影响）
+        sed -e 's/<svg \(.*\)height="24"/<svg \1height="30" preserveAspectRatio="xMidYMin"/' \
+            "$tmp/$name.svg" > "$tmp/$name-pad.svg"
+        # PNG 兜底：ColorScheme-Text 重着色中灰后 2× 光栅化（72×90）
         sed 's/\(ColorScheme-Text { color:\)#[0-9a-fA-F]*/\1#808080/' \
-            "$tmp/$name.svg" > "$tmp/$name-gray.svg"
-        rsvg-convert -w 72 -h 72 "$tmp/$name-gray.svg" > "data/icons/$name.png"
-        cp "$tmp/$name.svg" "data/icons/$name.svg"
+            "$tmp/$name-pad.svg" > "$tmp/$name-gray.svg"
+        rsvg-convert -w 72 -h 90 "$tmp/$name-gray.svg" > "data/icons/$name.png"
+        cp "$tmp/$name-pad.svg" "data/icons/$name.svg"
     done
-    echo "已生成 10 枚 Papirus symbolic .svg + 72px 兜底 .png"
+    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底（含底部手势死区）"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。
