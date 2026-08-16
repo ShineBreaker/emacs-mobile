@@ -66,11 +66,6 @@ termux tag="" flavor="apt-android-7" abi="universal": tools
     echo
     echo "==> 产物: ${apk%.apk}-emacs-signed.apk"
 
-# 清理下载目录
-[group('APK 构建')]
-clean:
-    rm -rf download
-
 # ═══ emacs-mobile 配置依赖（字体 / 图标 / 插件预构建）═══
 
 maple-font-url := "https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-NF-CN.zip"
@@ -232,11 +227,19 @@ packages:
     echo "全部插件已构建完成"
 
 # 清理编译产物与本地缓存：仓库内 *.elc、eln-cache/ 与桌面沙箱 .sandbox/
-# （真机 modules/ 下也会留下 .elc；重建：重跑 just packages）
-[group('配置依赖')]
-clean-junk:
+[group('清理垃圾')]
+clean-emacs:
     #!/usr/bin/env bash
     set -euo pipefail
     find . -path ./.git -prune -o -name '*.elc' -type f -delete
     rm -rf eln-cache .sandbox
     echo "已清理 *.elc、eln-cache/、.sandbox/"
+
+# 清理 Termux 重签名时的下载目录
+[group('清理垃圾')]
+clean-download:
+    rm -rf download
+
+# 清理所有垃圾
+[group('清理垃圾')]
+clean: clean-emacs clean-download
