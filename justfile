@@ -118,10 +118,10 @@ icons:
     for item in "${spec[@]}"; do
         read -r name path <<<"$item"
         fetch_svg "$base/${path}-symbolic.svg" "$tmp/$name.svg"
-        # 垂直防手势垫：画布 24→30、内容顶对齐（xMidYMin），底部留 6 单位
-        # 死区——:height 36 显示下约 7px，避开全面屏上滑手势区；图标本体
-        # 约 29px（横向不受影响）
-        sed -e 's/<svg \(.*\)height="24"/<svg \1height="30" preserveAspectRatio="xMidYMin"/' \
+        # 垂直防手势垫：画布统一 24×30、内容顶对齐（xMidYMin），底部留
+        # 6 单位死区——:height 48 显示下约 10px，避开全面屏上滑手势区；
+        # 横向不受影响。上游画布尺寸不一（22/24…），宽度高度都按通配替换
+        sed -e 's/<svg \(.*\)width="[0-9]*" height="[0-9]*"/<svg \1width="24" height="30" preserveAspectRatio="xMidYMin"/' \
             "$tmp/$name.svg" > "$tmp/$name-pad.svg"
         # PNG 兜底：ColorScheme-Text 重着色中灰后 2× 光栅化（72×90）
         sed 's/\(ColorScheme-Text { color:\)#[0-9a-fA-F]*/\1#808080/' \
