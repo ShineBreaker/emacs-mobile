@@ -113,6 +113,11 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
   rm -rf ~/.cache/emacs/straight/build/magit-section ~/.cache/emacs/straight/build/magit
   ```
   配置已显式锁定 `magit-section` recipe 只取 `magit-section.el`，重建后不会再混入。
+- **启动加载 org 时提示 `WARNING: No org-loaddefs.el file ...` 并停顿数秒**：缓存里混入了 git 版 org（org-roam 的依赖链经 org-elpa recipe 拉入，`:straight nil` 拦不住依赖层），其 build 缺 make 产物 org-loaddefs.el，且排在 load-path 首位挤掉内置 org。修复（Termux 里执行后重启 Emacs）：
+  ```sh
+  rm -rf ~/.cache/emacs/straight/build/org ~/.cache/emacs/straight/repos/org
+  ```
+  配置已把 org recipe 覆盖为内置（`init-packages.el`），之后依赖解析不会再装回。
 - **后台被杀**：系统设置中锁定后台 / 关闭对 Emacs 的电池优化；厂商定制系统的额外限制见 [dontkillmyapp.com](https://dontkillmyapp.com/)。
 - **Termux 子进程被周期性杀掉（Android 12+）**：系统「幽灵进程杀手」每 5 分钟检查并终止 CPU 占用最高的后台子进程——straight 的 git、org-roam 的 sqlite3 CLI、consult-ripgrep 都可能中招（表现为间歇性失败、db 查询报错）。用 adb 关闭（手机开启「USB 调试」后在电脑执行）：
   ```sh

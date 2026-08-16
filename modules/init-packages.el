@@ -70,6 +70,12 @@ emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
 ;; · emacsql-sqlite：org-roam.el 顶层 require（仅加载定义，C 二进制不
 ;;   被编译/使用）；与 emacsql 同一仓库 → 共享上面的 pin。
 ;; · emacsql-sqlite3：sqlite3 CLI 后端（cireu 维护）。
+;; · org：强制走内置（Emacs 30.2 自带 9.7，满足 org-roam 9.4+）。
+;;   org-elpa recipe 源为 org 提供 git mirror recipe，org-roam 依赖链
+;;   解析时会把 git 版 org 装进 load-path 首位（与内置并存撞版本），
+;;   其 build 不含 org-loaddefs.el（make 产物），每次加载 org 警告并
+;;   sit-for 两次；use-package 的 :straight nil 拦不住依赖层，须在此
+;;   覆盖 recipe。
 ;; · magit-section：显式锁 files 防镜像 recipe 漂移（缓存曾混入完整
 ;;   magit，加载后弹 Emergency：内置 transient 旧于 magit 要求）。
 ;;   magit 仓库源码在 lisp/ 子目录（files 误写根路径会静默 build 出
@@ -83,6 +89,7 @@ emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
                   :files ("emacsql-sqlite.el"))
                  (emacsql-sqlite3
                   :type git :host github :repo "cireu/emacsql-sqlite3")
+                 (org :type built-in)
                  (magit-section
                   :type git :host github :repo "magit/magit"
                   :files ("lisp/magit-section.el"))))))
