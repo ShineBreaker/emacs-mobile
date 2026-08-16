@@ -103,10 +103,24 @@
         (which-key-add-major-mode-key-based-replacements
           (car mode-entry) (car entry) (cdr entry))))))
 
+(defun custom/which-key-next-page ()
+  "which-key 弹窗显示时翻到下一页（mode-line 按钮用），无弹窗时无操作。"
+  (interactive)
+  (when (and (fboundp 'which-key--popup-showing-p)
+             (which-key--popup-showing-p)
+             (fboundp 'which-key-show-next-page-cycle))
+    (which-key-show-next-page-cycle)))
+
 (use-package which-key
   :custom (which-key-idle-delay 0.6)
           ;; 底部弹窗（触屏视线近）
           (which-key-side-window-location 'bottom)
+          ;; 侧窗加高 + 描述压缩：窄屏一屏容纳更多条目，减少翻页
+          (which-key-side-window-max-height 0.5)
+          (which-key-max-description-length 16)
+          ;; 多层前缀启用官方 paging：弹窗内 C-h n/p 翻页（mode-line
+          ;; 「»」按钮为触摸翻页入口，见 init-ui.el）
+          (which-key-paging-prefixes '("C-x" "C-c" "C-h" "M-s" "M-g"))
   :config
   (custom/which-key-apply-descriptions)
   ;; 延迟到启动完成后开启，避免拖慢 init

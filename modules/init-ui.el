@@ -164,8 +164,19 @@
    'mouse-face 'highlight
    'help-echo "当前行回中"))
 
+(defun custom/mode-line--which-key-next-button ()
+  "mode-line which-key 翻页按钮（GUI NF 字形，tty 用 »）。"
+  (propertize
+   (format " %s " (if (display-graphic-p) "\uF0A9" "»"))
+   'local-map (make-mode-line-mouse-map
+               'mouse-1 #'custom/which-key-next-page)
+   'mouse-face 'highlight
+   'help-echo "which-key 下一页"))
+
+(declare-function custom/which-key-next-page "init-completion")
+
 ;; 右端按钮组：`mode-line-format-right-align'（须裸符号，format-mode-line
-;; 按变量处理）之后的构造整体右对齐，从右到左：✕ 关闭、换 切缓冲区、中 回中
+;; 按变量处理）之后的构造整体右对齐，从右到左：中 回中、» 翻页、换 切缓冲区、✕ 关闭
 (setq-default mode-line-format
               '("%e"
                 (:eval (if (buffer-modified-p) "●" "·"))
@@ -175,6 +186,7 @@
                 (:eval (custom/mode-line--percent))
                 mode-line-format-right-align
                 (:eval (custom/mode-line--recenter-button))
+                (:eval (custom/mode-line--which-key-next-button))
                 (:eval (custom/mode-line--switch-button))
                 (:eval (custom/mode-line--close-button))))
 
