@@ -156,7 +156,9 @@ icons:
             > "$tmp/mod-$name.ppm"
         pngtopam -alpha "$tmp/mod-$name.png" \
             | pamscale -xsize="$ow" -ysize="$oh" > "$tmp/mod-$name.mask"
-        ppmtoxpm -alphamask="$tmp/mod-$name.mask" "$tmp/mod-$name.ppm" \
+        # -hexonly：Android 无 X 颜色数据库，命名色（gray43/web gray）
+        # 解析失败会导致整图不渲染（真机踩坑）
+        ppmtoxpm -hexonly -alphamask="$tmp/mod-$name.mask" "$tmp/mod-$name.ppm" \
             > "data/icons/mod-$name.xpm"
     }
     mk_badge control  C   56 56 28 28

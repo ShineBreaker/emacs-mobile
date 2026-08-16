@@ -4,11 +4,11 @@ static char */tmp/tmp[] = {
 "28 28 7 1",
 /* colors */
 "  c #6D6D6D",
-". c gray43",
-"X c web gray",
+". c #6E6E6E",
+"X c #808080",
 "o c #818181",
-"O c gray53",
-"+ c gray34",
+"O c #878787",
+"+ c #575757",
 "@ c None",
 /* pixels */
 "@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
