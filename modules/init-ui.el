@@ -178,6 +178,12 @@
                 (:eval (custom/mode-line--switch-button))
                 (:eval (custom/mode-line--close-button))))
 
+;; ─── 编辑行为（自桌面配置移植）───────────────────────────────────────
+;; CJK 按字符类别折行（Emacs 29+ 内置）：中文段落无空格断点也能正常折行
+(setq word-wrap-by-category t)
+;; 有选区时输入/粘贴覆盖选区，触屏拖选后直接打字
+(delete-selection-mode 1)
+
 ;; ─── 换行与行号：任何 buffer 软换行 + 编辑区小号行号 ──────────────
 
 (global-visual-line-mode 1)
@@ -188,6 +194,43 @@
 (setq-default display-line-numbers-width 2) ; 定宽 2 位，行号窄不挤
 (set-face-attribute 'line-number nil :height 0.8)
 (set-face-attribute 'line-number-current-line nil :height 0.8)
+
+;; ─── 失焦自动保存（自桌面配置移植）：防 Android 后台被杀丢数据 ──────
+;; 失去焦点后空闲 1s 保存所有已修改的本地文件 buffer，不保存远程与
+;; 内部 buffer。`after-focus-change-function' 在 Android 端口的触发
+;; 待真机确认；不触发则该机制不生效，无副作用。
+
+(defconst custom:focus-save-idle-delay 1
+  "失焦后保存用户文件 buffer 前等待的空闲秒数。")
+
+(defvar custom--focus-save-timer nil
+  "失焦保存的 pending idle timer。")
+
+(defun custom/user-file-buffer-p ()
+  "当前 buffer 是否为可保存的本地用户文件 buffer。"
+  (and buffer-file-name
+       buffer-file-truename
+       (buffer-modified-p)
+       (not buffer-read-only)
+       (not (buffer-base-buffer))
+       (not (file-remote-p buffer-file-name))))
+
+(defun custom/save-user-file-buffers ()
+  "保存已修改的本地用户文件 buffer。"
+  (setq custom--focus-save-timer nil)
+  (save-some-buffers t #'custom/user-file-buffer-p))
+
+(defun custom/schedule-focus-save ()
+  "按焦点状态安排或取消空闲保存（有 frame 聚焦时不保存）。"
+  (when (timerp custom--focus-save-timer)
+    (cancel-timer custom--focus-save-timer)
+    (setq custom--focus-save-timer nil))
+  (unless (seq-some #'frame-focus-state (frame-list))
+    (setq custom--focus-save-timer
+          (run-with-idle-timer custom:focus-save-idle-delay nil
+                               #'custom/save-user-file-buffers))))
+
+(add-function :after after-focus-change-function #'custom/schedule-focus-save)
 
 (provide 'init-ui)
 ;;; init-ui.el ends here
