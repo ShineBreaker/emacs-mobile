@@ -90,6 +90,7 @@ icons:
         "paste actions/edit-paste"          "cut actions/edit-cut"
         "search actions/edit-find"          "theme status/night-light"
         "config places/folder"              "dashboard actions/view-grid"
+        "tab actions/go-last"               "esc actions/process-stop"
     )
     missing=""
     for item in "${spec[@]}"; do
@@ -129,7 +130,7 @@ icons:
         rsvg-convert -w 72 -h 90 "$tmp/$name-gray.svg" > "data/icons/$name.png"
         cp "$tmp/$name-pad.svg" "data/icons/$name.svg"
     done
-    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底（含底部手势死区）"
+    echo "已生成 12 枚 Papirus symbolic .svg + PNG 兜底（含底部手势死区）"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。

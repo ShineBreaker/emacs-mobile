@@ -45,26 +45,30 @@
       custom/bar-icon-color-dark
     custom/bar-icon-color-light))
 
+(defun custom/bar--svg-image (name height)
+  "把 data/icons/NAME.svg 重着色为当前主题色后按 HEIGHT 创建图像。
+无 librsvg 或文件缺失时返回 nil（调用方自行兜底）。"
+  (let ((svg (expand-file-name (concat name ".svg")
+                               (expand-file-name "data/icons"
+                                                 user-emacs-directory))))
+    (and (image-type-available-p 'svg)
+         (file-exists-p svg)
+         (ignore-errors
+          (create-image
+           (replace-regexp-in-string
+            "ColorScheme-Text { color:#[0-9a-fA-F]\\{6\\}"
+            (concat "ColorScheme-Text { color:" (custom/bar--icon-color))
+            (with-temp-buffer
+              (insert-file-contents svg)
+              (buffer-string)))
+           'svg t :height height)))))
+
 (defun custom/bar--image (key)
   "构造 KEY 按钮的图标图像：SVG 重着色直渲优先，PNG 兜底。"
-  (let* ((name (symbol-name key))
-         (svg (expand-file-name (concat name ".svg")
-                                (expand-file-name "data/icons"
-                                                  user-emacs-directory))))
-    (or (and (image-type-available-p 'svg)
-             (file-exists-p svg)
-             (ignore-errors
-               (create-image
-                (replace-regexp-in-string
-                 "ColorScheme-Text { color:#[0-9a-fA-F]\\{6\\}"
-                 (concat "ColorScheme-Text { color:" (custom/bar--icon-color))
-                 (with-temp-buffer
-                   (insert-file-contents svg)
-                   (buffer-string)))
-                'svg t :height custom/bar-icon-height)))
-        (find-image
-         `((:type png :file ,(concat name ".png")
-                  :height ,custom/bar-icon-height))))))
+  (or (custom/bar--svg-image (symbol-name key) custom/bar-icon-height)
+      (find-image
+       `((:type png :file ,(concat (symbol-name key) ".png")
+                :height ,custom/bar-icon-height)))))
 
 (defun custom/bar--add-button (key label command help)
   "向 `tool-bar-map' 添加使用 data/icons/<KEY> 图标的按钮。"

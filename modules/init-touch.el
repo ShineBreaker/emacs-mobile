@@ -56,6 +56,54 @@
       (modifier-bar-mode 'toggle)
     (message "本 Emacs 无 modifier-bar（需 Android 官方构建）")))
 
+;; ─── modifier-bar 追加 Tab/ESC 按钮（2026-08-16）──────────────────
+;; modifier-bar 的按钮集合其实是 secondary-tool-bar-map（Emacs 30 通用
+;; 机制，非上游写死，PLAN 旧结论「不可配」作废）；TAB/ESC 非修饰键，
+;; 塞进 unread-command-events 即等同物理按键。
+
+(defcustom custom/modbar-icon-height 28
+  "modifier-bar 自定义按钮图标高度（对齐官方内置修饰键图标量级）。"
+  :type 'integer
+  :group 'emacs-mobile)
+
+(declare-function custom/bar--svg-image "init-bar")
+
+(defun custom/modbar-tab ()
+  "发送 TAB 键（等同物理键盘 Tab：补全切换/缩进等场景）。"
+  (interactive)
+  (setq unread-command-events (list ?\t)))
+
+(defun custom/modbar-esc ()
+  "发送 ESC 键（取消补全/前缀键等）。"
+  (interactive)
+  (setq unread-command-events (list ?\e)))
+
+(defun custom/modbar--setup ()
+  "向 secondary-tool-bar-map 尾部追加 Tab/ESC 按钮（显示在修饰键右侧）。
+`modifier-bar-mode' 每次开启都会重置该 map，须在其后调用。"
+  (when (and (bound-and-true-p modifier-bar-mode)
+             (boundp 'secondary-tool-bar-map)
+             (keymapp secondary-tool-bar-map))
+    (dolist (spec '((tab custom/modbar-tab "发送 TAB 键")
+                    (esc custom/modbar-esc "发送 ESC 键")))
+      (let ((key (nth 0 spec)) (cmd (nth 1 spec)) (help (nth 2 spec)))
+        (define-key secondary-tool-bar-map (vector key)
+          `(menu-item ,(upcase (symbol-name key)) ,cmd
+                      :help ,help
+                      :image ,(custom/bar--svg-image
+                               (symbol-name key)
+                               custom/modbar-icon-height)))))
+    ;; define-key 插到列表头（显示会跑到修饰键左侧），移到尾部
+    (let ((alist (cdr secondary-tool-bar-map)))
+      (dolist (k '(tab esc))
+        (let ((cell (assq k alist)))
+          (setq alist (append (delq cell alist) (list cell)))))
+      (setf (cdr secondary-tool-bar-map) alist))
+    ;; 就地改动后必须刷掉 tool-bar 键映射缓存（按 map 身份哈希缓存）
+    (when (fboundp 'tool-bar--flush-cache)
+      (tool-bar--flush-cache))
+    (force-mode-line-update t)))
+
 (defun custom/touch-open-config ()
   "打开配置所在的文件夹（dired）。"
   (interactive)
@@ -113,9 +161,13 @@ dashboard）在 setq-default 前已持有 ~，按钮侧显式绑定才可靠。"
   ;; 触屏无菜单交互场景，关闭菜单栏省一行（命令走 tool-bar / M-x）
   (menu-bar-mode -1)
 
-  ;; 修饰键交官方 modifier-bar，默认开（tool-bar 首位按钮可开关）
+  ;; 修饰键交官方 modifier-bar，默认开（tool-bar 首位按钮可开关）；
+  ;; 每次开启后追加 Tab/ESC 自定义按钮（mode 会重置 map）
   (when (fboundp 'modifier-bar-mode)
-    (modifier-bar-mode 1)))
+    (modifier-bar-mode 1)
+    (advice-add 'modifier-bar-mode :after
+                (lambda (&rest _) (custom/modbar--setup)))
+    (custom/modbar--setup)))
 
 (provide 'init-touch)
 ;;; init-touch.el ends here
