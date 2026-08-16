@@ -90,18 +90,24 @@ icons:
         "paste actions/edit-paste"          "cut actions/edit-cut"
         "search actions/edit-find"          "theme status/night-light"
         "config places/folder"              "dashboard actions/view-grid"
-        "tab actions/go-last"               "esc actions/process-stop"
     )
     missing=""
     for item in "${spec[@]}"; do
         read -r name _ <<<"$item"
         [[ -f "data/icons/$name.svg" ]] || missing="$missing $name"
     done
+    # modifier-bar 徽章也算依赖（少了即触发重建）
+    for n in control shift meta alt super hyper tab esc; do
+        [[ -f "data/icons/mod-$n.png" ]] || missing="$missing mod-$n"
+    done
     if [[ -z "$missing" ]]; then
         echo "data/icons/ 图标已齐（随仓库分发），跳过"
         exit 0
     fi
     command -v rsvg-convert >/dev/null || { echo "需要 rsvg-convert (librsvg)"; exit 1; }
+    # 不用 grep -q：-q 命中即退出会让 fc-list 吃 EPIPE，pipefail 下误报
+    command -v fc-list >/dev/null && fc-list :family | grep -i maple >/dev/null \
+        || echo "提示：本机无 Maple 字体，徽章文字将用 fallback 字体渲染（建议先 just font）"
     mkdir -p data/icons
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
@@ -130,7 +136,19 @@ icons:
         rsvg-convert -w 72 -h 90 "$tmp/$name-gray.svg" > "data/icons/$name.png"
         cp "$tmp/$name-pad.svg" "data/icons/$name.svg"
     done
-    echo "已生成 12 枚 Papirus symbolic .svg + PNG 兜底（含底部手势死区）"
+    # modifier-bar 徽章：官方六修饰键是 35×19 PBM 文字徽章，与 Papirus
+    # 图标风格不搭——整套 8 枚统一为描边文字徽章（灰 #808080 双主题
+    # 通吃，2× 光栅化 168×96，字体 Maple）
+    badges=("control:Ctrl" "shift:Shift" "meta:Meta" "alt:Alt"
+            "super:Sup" "hyper:Hyp" "tab:Tab" "esc:Esc")
+    for item in "${badges[@]}"; do
+        label="${item#*:}"; name="${item%%:*}"
+        printf '%s\n' \
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"168\" height=\"96\"><rect x=\"6\" y=\"6\" width=\"156\" height=\"84\" rx=\"16\" ry=\"16\" fill=\"none\" stroke=\"#808080\" stroke-width=\"6\"/><text x=\"84\" y=\"72\" font-family=\"Maple Mono NF CN\" font-size=\"56\" fill=\"#808080\" text-anchor=\"middle\">$label</text></svg>" \
+            > "$tmp/mod-$name.svg"
+        rsvg-convert "$tmp/mod-$name.svg" > "data/icons/mod-$name.png"
+    done
+    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底 + 8 枚 modifier-bar 徽章"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。

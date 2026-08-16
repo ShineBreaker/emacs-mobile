@@ -20,3 +20,8 @@ tag `20260801` 的 24×24 symbolic 系列（单色、`ColorScheme-Text` CSS 变�
 | theme | status/night-light-symbolic |
 | config | places/folder-symbolic |
 | dashboard | actions/view-grid-symbolic |
+
+另有一组 **modifier-bar 徽章** `mod-*.png`（168×96 描边文字徽章：
+Ctrl/Shift/Meta/Alt/Sup/Hyp/Tab/Esc，中灰、双主题通吃）——非 Papirus
+资产，由管线用 Maple 字形直接绘制（官方六修饰键原图是 35×19 PBM 位图
+徽章，整套重建统一风格，见 `modules/init-touch.el`）。

@@ -66,10 +66,7 @@
   :type 'integer
   :group 'emacs-mobile)
 
-(declare-function custom/bar--svg-image "init-bar")
-
-(defun custom/modbar-tab ()
-  "发送 TAB 键（等同物理键盘 Tab：补全切换/缩进等场景）。"
+(defun custom/modbar-tab ()  "发送 TAB 键（等同物理键盘 Tab：补全切换/缩进等场景）。"
   (interactive)
   (setq unread-command-events (list ?\t)))
 
@@ -78,28 +75,53 @@
   (interactive)
   (setq unread-command-events (list ?\e)))
 
+(defun custom/modbar--badge (name)
+  "取 data/icons/mod-NAME.png 徽章图像（描边文字徽章，中灰双主题）。"
+  (find-image
+   `((:type png :file ,(concat "mod-" name ".png")
+            :height ,custom/modbar-icon-height))))
+
 (defun custom/modbar--setup ()
-  "向 secondary-tool-bar-map 尾部追加 Tab/ESC 按钮（显示在修饰键右侧）。
+  "整套重建 modifier-bar：六修饰键 + Tab/ESC 统一为文字徽章风格。
+官方实现里六修饰键是 35×19 PBM 位图徽章，与本项目图标风格不搭；
+`secondary-tool-bar-map' 可整体重建，按键派发走 `input-decode-map'
+（mode 开启时官方已绑定），不受 map 重建影响。
 `modifier-bar-mode' 每次开启都会重置该 map，须在其后调用。"
   (when (and (bound-and-true-p modifier-bar-mode)
-             (boundp 'secondary-tool-bar-map)
-             (keymapp secondary-tool-bar-map))
-    (dolist (spec '((tab custom/modbar-tab "发送 TAB 键")
-                    (esc custom/modbar-esc "发送 ESC 键")))
-      (let ((key (nth 0 spec)) (cmd (nth 1 spec)) (help (nth 2 spec)))
-        (define-key secondary-tool-bar-map (vector key)
-          `(menu-item ,(upcase (symbol-name key)) ,cmd
-                      :help ,help
-                      :image ,(custom/bar--svg-image
-                               (symbol-name key)
-                               custom/modbar-icon-height)))))
-    ;; define-key 插到列表头（显示会跑到修饰键左侧），移到尾部
-    (let ((alist (cdr secondary-tool-bar-map)))
-      (dolist (k '(tab esc))
-        (let ((cell (assq k alist)))
-          (setq alist (append (delq cell alist) (list cell)))))
-      (setf (cdr secondary-tool-bar-map) alist))
-    ;; 就地改动后必须刷掉 tool-bar 键映射缓存（按 map 身份哈希缓存）
+             (fboundp 'modifier-bar-available-p))
+    (setq secondary-tool-bar-map
+          `(keymap
+            (control menu-item "Control Key" event-apply-control-modifier
+                     :help "Add Control modifier to the following event"
+                     :image ,(custom/modbar--badge "control")
+                     :enable (modifier-bar-available-p 'control))
+            (shift menu-item "Shift Key" event-apply-shift-modifier
+                   :help "Add Shift modifier to the following event"
+                   :image ,(custom/modbar--badge "shift")
+                   :enable (modifier-bar-available-p 'shift))
+            (meta menu-item "Meta Key" event-apply-meta-modifier
+                  :help "Add Meta modifier to the following event"
+                  :image ,(custom/modbar--badge "meta")
+                  :enable (modifier-bar-available-p 'meta))
+            (alt menu-item "Alt Key" event-apply-alt-modifier
+                 :help "Add Alt modifier to the following event"
+                 :image ,(custom/modbar--badge "alt")
+                 :enable (modifier-bar-available-p 'alt))
+            (super menu-item "Super Key" event-apply-super-modifier
+                   :help "Add Super modifier to the following event"
+                   :image ,(custom/modbar--badge "super")
+                   :enable (modifier-bar-available-p 'super))
+            (hyper menu-item "Hyper Key" event-apply-hyper-modifier
+                   :help "Add Hyper modifier to the following event"
+                   :image ,(custom/modbar--badge "hyper")
+                   :enable (modifier-bar-available-p 'hyper))
+            (tab menu-item "TAB Key" custom/modbar-tab
+                 :help "发送 TAB 键"
+                 :image ,(custom/modbar--badge "tab"))
+            (esc menu-item "ESC Key" custom/modbar-esc
+                 :help "发送 ESC 键"
+                 :image ,(custom/modbar--badge "esc"))))
+    ;; 就地重建后必须刷掉 tool-bar 键映射缓存（按 map 身份哈希缓存）
     (when (fboundp 'tool-bar--flush-cache)
       (tool-bar--flush-cache))
     (force-mode-line-update t)))
@@ -163,8 +185,8 @@ dashboard）在 setq-default 前已持有 ~，按钮侧显式绑定才可靠。"
 
   ;; 修饰键交官方 modifier-bar，默认开（tool-bar 首位按钮可开关）；
   ;; 每次开启后追加 Tab/ESC 自定义按钮（mode 会重置 map）。
-  ;; setup 依赖 init-bar 的 custom/bar--svg-image，而本模块先于
-  ;; init-bar 加载，须延迟到其加载后执行
+  ;; setup 的 find-image 依赖 init-bar 安装时把 data/icons 加入
+  ;; image-load-path，而本模块先于 init-bar 加载，须延迟执行
   (when (fboundp 'modifier-bar-mode)
     (modifier-bar-mode 1)
     (advice-add 'modifier-bar-mode :after
