@@ -72,11 +72,12 @@
 
 (defun custom/modbar--badge (name)
   "取 data/icons/mod-NAME 徽章图像。
-XPM 优先（掩码透明——PNG alpha 在 Lucid 工具栏不合成会露白底），
-无 libxpm 构建回退 PNG。XPM 不支持运行时缩放，显示尺寸烤在资产里
-（字母 28×28、Tab/Esc 49×28，改尺寸须 justfile 调参重跑）。"
+PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深浅主题自动
+适配；XPM 路线真机不渲染已弃，PNG alpha 在 Lucid 露白底仅兜底）。
+位图不支持运行时缩放，尺寸烤在资产（字母 28×28、Tab/Esc 49×28，
+改尺寸须 justfile 调参重跑）。"
   (find-image
-   `((:type xpm :file ,(concat "mod-" name ".xpm"))
+   `((:type pbm :file ,(concat "mod-" name ".pbm"))
      (:type png :file ,(concat "mod-" name ".png")))))
 
 (defun custom/modbar--setup ()
