@@ -148,19 +148,20 @@
       (org-roam-db-autosync-mode))))
 
 ;; ─── org-roam 数据访问接口（展示层唯一入口） ─────────────────────────
-;; 查询 + 增量同步 + 错误降级集中于此：org-roam schema/版本变更只改本
-;; 模块，dashboard 等展示层不接触 org-roam 符号。
+;; 查询 + 错误降级集中于此：org-roam schema/版本变更只改本模块，
+;; dashboard 等展示层不接触 org-roam 符号。
+;; 查询前不做全量同步：org-roam-db-sync 在 Android 共享存储（FUSE）
+;; 上逐文件读全文算 hash，分钟级阻塞主线程且触屏无法中断；索引由
+;; autosync-mode 开启时的一次全量与保存时增量维护，Syncthing 新到
+;; 文件下次启动补入。
 
 (declare-function org-roam-db-query "org-roam")
-(declare-function org-roam-db-sync "org-roam")
 
 (defun custom/org-roam-recent-notes (n)
   "最近修改的 N 条 Roam 笔记，返回 ((标题 . 文件) ...) 列表。
-拉取前显式增量同步（autosync 不索引外部新到文件，Syncthing 场景）；
 org-roam 不可用或查询失败时返回 nil，调用方按空数据降级。"
   (ignore-errors
     (require 'org-roam)
-    (org-roam-db-sync)
     (mapcar (lambda (row)
               (cons (or (nth 0 row)
                         (file-name-nondirectory (nth 1 row)))
