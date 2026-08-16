@@ -4,7 +4,7 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / UI / 触屏 / 工具栏 / 补全 / Org / 仪表盘 / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 设计依据见 PLAN.md（不入库）。交互回归**官方组件分层**（自实现 side window 工具栏因 tap 会把工具栏 buffer 选中、命令落到工具栏自身而废弃）：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 打开/保存/复制/粘贴/剪切/搜索/深浅主题/配置文件夹(dired)/仪表盘（10 钮；撤销/重做走 M-x，回中在 mode-line 右端），图标为 [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) symbolic 矢量 SVG（加载时按深浅主题重着色直渲，无 librsvg 构建回退中灰 PNG 兜底；`just icons` 幂等重建，上游 GPL-3.0，来源见 data/icons/README.md；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载 buffer/窗口控制——✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）、换 切换缓冲区。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
+> 交互组件用**官方组件分层**：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 打开/保存/复制/粘贴/剪切/搜索/深浅主题/配置文件夹(dired)/仪表盘（10 钮；撤销/重做走 M-x，回中在 mode-line 右端），图标为 [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) symbolic 矢量 SVG（加载时按深浅主题重着色直渲，无 librsvg 构建回退中灰 PNG 兜底；`just icons` 幂等重建，上游 GPL-3.0，来源见 data/icons/README.md；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载 buffer/窗口控制——✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）、换 切换缓冲区。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
 
 ## 1. APK 选择
 
@@ -119,7 +119,7 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
   ```
 - **init 出错无法启动（官方逃生通道）**：Android 无命令行参数，可用系统设置里 Emacs 的偏好设置界面以 `--quick`（跳过 init）或 `--debug-init` 启动（Android 7+：设置 → 应用 → Emacs 的应用信息页入口；旧系统：桌面「Emacs options」图标，因厂商而异）。若报转储文件（dump file）损坏，同一界面可删除 Emacs 文件目录中的转储文件修复；也可用任意文件管理器经 Emacs 导出的 documents provider 直接改名/删除 init 文件。
 - **从其他 app 打开文件没反应**：emacsclient 包装程序要求 Emacs 已启动服务器（未启动 server 的 Emacs 会在首次打开文件时被拉起，但若该会话没跑 `(server-start)`，之后的调用会失败）；org-protocol 链接同理。
-- **底部栏切换闪动**：方案 D 切换会重算 frame 布局，若真机上明显需迭代。
+- **底部栏切换闪动**：切换会重算 frame 布局，若真机上明显需迭代。
 
 ## 桌面开发期验证（沙箱，不污染真实配置）
 

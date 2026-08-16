@@ -5,17 +5,16 @@
 
 ;;; Commentary:
 ;; 从桌面移植的简化版：
-;; · ef-themes + light/dark 状态文件持久化（删除 D-Bus/Darkman 机制，Android 无 D-Bus）
-;; · mode-line 极简档 + 右端 [⇄] 底部栏切换开关（方案 D）
+;; · ef-themes + light/dark 状态文件持久化
+;; · mode-line 极简档 + 右端 [⇄] 底部栏切换开关
 ;; · 去 frame 标题（信息由 mode-line 承担）
 
 ;;; Code:
 
 ;; ─── 主字体：Maple Mono NF CN（中英等宽 + Nerd 图标字形） ──────────
-;; Android: ttf 由 `just font' 装到 Emacs home 的 fonts/（sfnt-android 枚举）；
-;; 桌面: fontconfig 已装。tty / 字体未装时 find-font 返回 nil，自动跳过。
-;; 字号加大（16pt 起）：同时改善 modifier-bar 按钮的触控大小（其尺寸
-;; 随 frame 字体，无独立配置项）；真机试值调整 custom/default-font-height。
+;; Android 装到 Emacs home 的 fonts/（sfnt-android 枚举），桌面走
+;; fontconfig；未装时 find-font 返回 nil，自动跳过。
+;; 字号加大可同步放大 modifier-bar 按钮（其尺寸随 frame 字体）。
 (defcustom custom/default-font-height 160
   "默认字号（1/10 pt）。加大可同步放大 modifier-bar 按钮。"
   :type 'integer
@@ -82,8 +81,8 @@
      nil)))
 
 (defun custom/color-scheme-apply-theme (mode)
-  "加载 MODE（\='light 或 \='dark）对应的主题并持久化状态。
-用内置 `load-theme'（ef-themes 仅提供主题定义文件）。"
+  "加载 MODE（\='light 或 \='dark）对应的主题并持久化状态
+（用内置 `load-theme'，ef-themes 仅提供主题定义文件）。"
   (setq custom/color-scheme-current-mode mode)
   (custom/color-scheme-save-state mode)
   (let ((theme (pcase mode
@@ -109,7 +108,7 @@
 (use-package ef-themes
   :defer t
   :init
-  ;; 主题加载放启动完成后，避免拖慢 init 并遵循 face 变体正确初始化
+  ;; 主题加载放启动完成后，避免拖慢 init
   (add-hook 'after-init-hook #'custom/color-scheme-init))
 
 ;; ─── frame 标题：去除（信息由 mode-line 承担） ─────────────────────
@@ -117,25 +116,20 @@
 (setq frame-title-format '(""))
 
 ;; ─── mode-line：极简档 ─────────────────────────────────────────────
-;; 组别切换入口在工具栏内（switch-kbd/switch-cmd 按钮，见 init-touch.el），
-;; mode-line 不再放切换块。
 
-;; 触屏场景无新手引导，抑制启动屏
+;; 触屏无新手引导，抑制启动屏
 (setq inhibit-startup-screen t)
 
-;; echo area 按需伸缩：多行长消息显示后自动缩回，避免底部空行残留
+;; echo area 按需伸缩，避免底部空行残留
 (setq resize-mini-windows 'grow-and-shrink)
 
 (defun custom/mode-line--percent ()
-  "当前位置百分比（自算：%p/%P 在顶底部会显示 Top/Bottom/All）。"
+  "当前位置百分比（%p/%P 在顶底部会显示 Top/Bottom/All）。"
   (format "%d%%%%"
           (floor (* 100.0 (point)) (max (point-max) 1))))
 
-;; 不用 mode-line-front-space：tty 下它渲染为 "-"。
-;; 行首放关闭当前 buffer 按钮（tap=mouse-1，与工具栏同机制；
-;; *mobile-bar* 的 mode-line 为 nil，按钮天然不会出现在工具栏上）。
-;; 缓冲区切换放 mode-line：点 mode-line 时所属窗口被选中，
-;; 目标落在正确窗口（buffer/窗口控制是 mode-line 的职责分层）。
+;; 行首放关闭当前 buffer 按钮（tap=mouse-1，与工具栏同机制）。
+;; 缓冲区切换也放 mode-line：点击时所属窗口被选中，目标窗口正确。
 (declare-function consult-buffer "consult")
 
 (defun custom/mode-line-switch-buffer ()
@@ -144,7 +138,7 @@
   (consult-buffer))
 
 (defun custom/mode-line--switch-button ()
-  "mode-line 缓冲区切换按钮：GUI NF 字形，tty 用「换」。"
+  "mode-line 缓冲区切换按钮（GUI NF 字形，tty 用「换」）。"
   (propertize
    (format " %s " (if (display-graphic-p) "\uF0EC" "换"))
    'local-map (make-mode-line-mouse-map
@@ -153,7 +147,7 @@
    'help-echo "切换缓冲区"))
 
 (defun custom/mode-line--close-button ()
-  "mode-line 关闭按钮：GUI NF 字形，tty 用 ×。"
+  "mode-line 关闭按钮（GUI NF 字形，tty 用 ×）。"
   (propertize
    (format " %s " (if (display-graphic-p) "\uF00D" "×"))
    'local-map (make-mode-line-mouse-map
@@ -162,7 +156,7 @@
    'help-echo "关闭当前 buffer 及其窗口"))
 
 (defun custom/mode-line--recenter-button ()
-  "mode-line 右端「当前行回中」按钮（自 tool-bar 迁来）。"
+  "mode-line 右端「当前行回中」按钮。"
   (propertize
    (format "%s " (if (display-graphic-p) "\uF037" "中"))
    'local-map (make-mode-line-mouse-map
@@ -170,9 +164,8 @@
    'mouse-face 'highlight
    'help-echo "当前行回中"))
 
-;; 左端 = 状态信息；右端 = 按钮组：符号 `mode-line-format-right-align'
-;; （须裸符号，非 (:eval …)，format-mode-line 按变量处理）之后的构造
-;; 整体右对齐，从右到左：✕ 关闭、换 切缓冲区、中 回中
+;; 右端按钮组：`mode-line-format-right-align'（须裸符号，format-mode-line
+;; 按变量处理）之后的构造整体右对齐，从右到左：✕ 关闭、换 切缓冲区、中 回中
 (setq-default mode-line-format
               '("%e"
                 (:eval (if (buffer-modified-p) "●" "·"))
@@ -185,14 +178,14 @@
                 (:eval (custom/mode-line--switch-button))
                 (:eval (custom/mode-line--close-button))))
 
-;; ─── 换行与行号（2026-08-16）：任何 buffer 软换行 + 编辑区小号行号 ──
+;; ─── 换行与行号：任何 buffer 软换行 + 编辑区小号行号 ──────────────
 
 (global-visual-line-mode 1)
 
-;; 行号只在编辑类 buffer（prog/text/org），展示型 buffer 不加
+;; 行号只加在编辑类 buffer（prog/text/org）
 (dolist (hook '(prog-mode-hook text-mode-hook org-mode-hook))
   (add-hook hook #'display-line-numbers-mode))
-(setq-default display-line-numbers-width 2) ; 定宽 2 位，短行号不挤
+(setq-default display-line-numbers-width 2) ; 定宽 2 位，行号窄不挤
 (set-face-attribute 'line-number nil :height 0.8)
 (set-face-attribute 'line-number-current-line nil :height 0.8)
 

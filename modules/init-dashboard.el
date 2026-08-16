@@ -4,15 +4,15 @@
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:
-;; dashboard master 自带 Emacs Android 触屏修复（widget 点击走 mouse-1
-;; 与 <touchscreen-begin> 双通道，PR #567），条目零改造可点。
+;; dashboard master 自带 Android 触屏修复（widget 点击走 mouse-1 与
+;; <touchscreen-begin> 双通道），条目零改造可点。
 ;; 窄屏（约 40 列）适配：
-;; · banner 用 braille 点阵（30 列；官方注释要求字体含盲文区，Maple 满足）
-;; · 关键盘快捷键提示（触屏无键盘）；agenda 前缀去掉 12 列 category 段
-;; · recents 条目用「目录首字母 + 文件名」（桌面配置 path-initials 方案
-;;   移植）——官方 shorten-paths 是省略号截断，窄屏下不可读
+;; · banner 用 braille 点阵（要求字体含盲文区，Maple 满足）
+;; · 关键盘快捷键提示；agenda 前缀去掉 12 列 category 段
+;; · recents 条目用「目录首字母 + 文件名」（官方 shorten-paths 是省略号
+;;   截断，窄屏下不可读）
 ;; · 新增 roam item：最近修改的长期笔记（org-roam db 按 mtime 查询）
-;; require 顺序：init-org 之后（roam item 依赖 org-roam）。
+;; 在 init-org 之后加载（roam item 依赖 org-roam）。
 
 ;;; Code:
 
@@ -23,7 +23,7 @@
 ;; ─── recents 条目：目录首字母缩写 ───────────────────────────────────
 
 (defun custom/dashboard--path-initials (path)
-  "把 PATH 的目录部分缩成首字母（从桌面配置移植）。"
+  "把 PATH 的目录部分缩成首字母。"
   (let* ((remote (or (file-remote-p path) ""))
          (local (or (file-remote-p path 'localname) path))
          (parts (split-string
@@ -43,8 +43,8 @@
     (concat remote (string-join short "/"))))
 
 (defun custom/dashboard-insert-recents (list-size)
-  "最近文件 LIST-SIZE 条，条目显示「目录首字母/文件名」。
-覆盖官方 generator：默认的省略号截断在窄屏下损失全部目录信息。"
+  "最近文件 LIST-SIZE 条，条目显示「目录首字母/文件名」
+（官方默认省略号截断在窄屏下损失全部目录信息）。"
   (unless recentf-mode (recentf-mode 1))
   (dashboard-insert-section
    "Recent Files:"
@@ -63,16 +63,12 @@
 (declare-function org-roam-db-sync "org-roam")
 
 (defun custom/dashboard-insert-roam (list-size)
-  "最近修改的 Roam 笔记 LIST-SIZE 条。
-db 不可用（sqlite3 CLI 缺失 / init-org 未启用 org-roam / 目录为空）
-时整块静默降级为 No items。"
+  "最近修改的 Roam 笔记 LIST-SIZE 条；db 不可用时整块降级为 No items。"
   (let* ((rows (ignore-errors
                 (require 'org-roam)
-                ;; 显式增量同步：autosync 不索引外部新到文件（Syncthing
-                ;; 场景），不同步则 db 过时、条目缺失
+                ;; 显式增量同步：autosync 不索引外部新到文件（Syncthing 场景）
                 (org-roam-db-sync)
-                ;; 反引号 vector：emacsql 方括号字面量内 `,list-size'
-                ;; 才做运行时插值（普通 vector 会把符号按字面编译）
+                ;; 反引号 vector：方括号字面量内 `,list-size' 才做运行时插值
                 (org-roam-db-query
                  `[:select [nodes:title nodes:file]
                    :from nodes
@@ -94,12 +90,10 @@ db 不可用（sqlite3 CLI 缺失 / init-org 未启用 org-roam / 目录为空�
 
 ;; ─── 配置与启动 ─────────────────────────────────────────────────────
 
-;; navigator 按钮行：org/笔记入口从工具栏迁来（2026-08-15 拍板）。
-;; icon 不走 display-icons-p 判断（navigator 直接显示给定字符串），
-;; tty 无 NF 字形故给空串只显文字；action 须 lambda 包装（widget 调用
-;; 带多余参数，直接绑命令 symbol 会 wrong-number-of-arguments）；
-;; 先 require 再调——capture 的模板挂在 with-eval-after-load 上，
-;; autoload 首次触发时函数体可能先于模板设置执行（实测弹 customize）。
+;; navigator 按钮行：icon 不走 display-icons-p 判断（navigator 直接显示
+;; 给定字符串），tty 无 NF 字形故给空串只显文字；action 须 lambda 包装
+;; （widget 调用带多余参数）；先 require 再调（capture 模板挂在
+;; with-eval-after-load 上，autoload 首次触发时可能先于模板执行）。
 (setq dashboard-navigator-buttons
       `(((,(if (display-graphic-p) "\uF0E7" "") "抓笔记"
           "快速捕获"

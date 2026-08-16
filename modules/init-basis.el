@@ -15,7 +15,7 @@
 (defconst custom:android-p (eq system-type 'android)
   "是否运行在 Android 原生 Emacs 上。")
 
-;; 数据区根目录（缓存/状态）：Android 用 Termux home，桌面用 HOME（沙箱隔离）。
+;; 数据区根目录（缓存/状态）：Android 用 Termux home，桌面用 HOME（沙箱隔离）
 (defconst custom:data-home
   (if (eq system-type 'android)
       "/data/data/com.termux/files/home/"
@@ -29,8 +29,8 @@
 (unless (file-directory-p custom:var-directory)
   (make-directory custom:var-directory t))
 
-;; org 笔记根目录。Android 真机路径（Syncthing 同步）存在则用之；
-;; 否则回退本地目录（桌面沙箱可全功能测试）。
+;; org 笔记根目录：Android 真机路径（Syncthing 同步）存在则用之，
+;; 否则回退本地目录（桌面沙箱可全功能测试）
 (defconst custom:org-directory
   (if (file-directory-p "/storage/emulated/0/Data/Syncthing/notebook/org/")
       "/storage/emulated/0/Data/Syncthing/notebook/org/"

@@ -74,11 +74,9 @@ maple-font-url := "https://github.com/subframe7536/maple-font/releases/download/
 deps: font icons packages
 
 # 生成 tool-bar 图标（Papirus symbolic 矢量，随仓库分发；缺失才重建）。
-# SVG 直渲为主（Android 官方构建带 librsvg，矢量任意缩放），运行端按
-# 主题重着色（替换 ColorScheme-Text 的 CSS 色，见 init-bar.el）。
-# PNG 为 72px 2× 超采样兜底（中灰 #808080 双主题通吃）：无 librsvg 的
-# 构建上 find-image 回退。桌面依赖 rsvg-convert；上游 GPL-3.0，
-# 来源与许可见 data/icons/README.md。
+# SVG 直渲 + 运行端按主题重着色（见 init-bar.el）；PNG 为 2× 超采样中灰
+# 兜底（无 librsvg 的构建）。桌面依赖 rsvg-convert；来源与许可见
+# data/icons/README.md。
 papirus_tag := "20260801"
 icons:
     #!/usr/bin/env bash
@@ -111,8 +109,8 @@ icons:
     mkdir -p data/icons
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
-    # 仓库里多数 symbolic 图标是符号链接（raw URL 返回目标路径文本而非
-    # SVG），须逐跳跟随解析到真实文件
+    # 多数 symbolic 图标是符号链接（raw URL 返回目标路径文本），
+    # 须逐跳跟随解析到真实文件
     fetch_svg() {
         local url="$1" out="$2" content tries=0
         while :; do
@@ -126,22 +124,20 @@ icons:
         read -r name path <<<"$item"
         fetch_svg "$base/${path}-symbolic.svg" "$tmp/$name.svg"
         # 垂直防手势垫：画布统一 24×30、内容顶对齐（xMidYMin），底部留
-        # 6 单位死区——:height 48 显示下约 10px，避开全面屏上滑手势区；
-        # 横向不受影响。上游画布尺寸不一（22/24…），宽度高度都按通配替换
+        # 6 单位死区，避开全面屏上滑手势区；上游画布尺寸不一，宽高通配替换
         sed -e 's/<svg \(.*\)width="[0-9]*" height="[0-9]*"/<svg \1width="24" height="30" preserveAspectRatio="xMidYMin"/' \
             "$tmp/$name.svg" > "$tmp/$name-pad.svg"
-        # PNG 兜底：ColorScheme-Text 重着色中灰后 2× 光栅化（72×90）
+        # PNG 兜底：重着色中灰后 2× 光栅化（72×90）
         sed 's/\(ColorScheme-Text { color:\)#[0-9a-fA-F]*/\1#808080/' \
             "$tmp/$name-pad.svg" > "$tmp/$name-gray.svg"
         rsvg-convert -w 72 -h 90 "$tmp/$name-gray.svg" > "data/icons/$name.png"
         cp "$tmp/$name-pad.svg" "data/icons/$name.svg"
     done
     # modifier-bar 徽章：修饰键取前缀单字母（C S M A s H），Tab/Esc 全名。
-    # 字体 = Cozette（MIT 许可像素字体，原生 6×13 网格，2×=26px 整数
-    # 倍渲染保网格对齐）：按最终尺寸直出不缩放，笔画阈值化。输出 PBM
-    # 位图（官方修饰键同机制，Android 真机验证可行；位图按工具栏前景
-    # 色着色，深浅主题自动适配）。XPM 真机不渲染已弃；PNG alpha 露白底
-    # 仅兜底。显示尺寸烤死在资产：字母 32×32、Tab/Esc 64×32。
+    # 字体 = Cozette（MIT 像素字体，6×13 网格 2×=26px 整数倍渲染保对齐）：
+    # 按最终尺寸直出不缩放，笔画阈值化。输出 PBM 位图（官方修饰键同机制，
+    # 按工具栏前景色着色，深浅主题自动适配；PNG alpha 露白底仅兜底）。
+    # 尺寸烤死在资产：字母 32×32、Tab/Esc 64×32。
     command -v pngtopam >/dev/null || { echo "需要 netpbm（guix install netpbm）"; exit 1; }
     if ! fc-list :family 2>/dev/null | grep -i cozette >/dev/null; then
         command -v curl >/dev/null || { echo "需要 curl"; exit 1; }

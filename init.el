@@ -9,8 +9,8 @@
 ;;
 ;; 真机部署：本文件与 early-init.el 复制到 Emacs 的 ~/.emacs.d，完整
 ;; 仓库在 Termux home。early-init 已重定向 `user-emacs-directory'，
-;; 下方 load-path/require 随之指向仓库 modules；若 early-init 未运行
-;; （副本缺失/旧版等），此处自行重定向并转发到仓库 init.el。
+;; load-path/require 随之指向仓库 modules；若 early-init 未运行（副本
+;; 缺失/旧版），此处自行重定向并转发到仓库 init.el。
 ;;
 ;; 加载失败时先看 `M-x custom/deploy-diagnose' 的诊断结论。
 
@@ -101,8 +101,8 @@ org 目录存在:           %s
       (setq user-emacs-directory custom:termux-repo)
       (load (expand-file-name "init.el" custom:termux-repo) nil t))
 
-  ;; Android 上 modules 缺失时给出有信息量的错误（而非 Cannot open
-  ;; load file: init-basis），M-x custom/deploy-diagnose 可看完整诊断
+  ;; Android 上 modules 缺失时给出有信息量的错误
+  ;; （而非 Cannot open load file: init-basis）
   (when (and (eq system-type 'android)
              (not (file-directory-p
                    (expand-file-name "modules" user-emacs-directory))))

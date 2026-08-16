@@ -4,20 +4,17 @@
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:
-;; 2026-08-15 方案 F 拍板：交互组件全部回归官方宿主——
-;; · 修饰键 → 官方 modifier-bar（tap 后下一个输入带修饰；自实现的
-;;   tap 一次性 + 锁定 + key-translation 全套删除）
+;; 交互组件全部用官方宿主：
+;; · 修饰键 → 官方 modifier-bar（tap 后下一个输入带修饰）
 ;; · 全局命令按钮 → 官方 tool-bar（init-bar.el 安装，底部）
 ;; · buffer/窗口控制 → mode-line（init-ui.el）
-;; 自实现 side window bar（方案 E）废弃根因：tap 会把 bar 的 window
-;; 选中，复制/剪切/撤销/切缓冲区等命令全部落到 *mobile-bar* 自身。
 
 ;;; Code:
 
 (declare-function dashboard-open "dashboard")
 
 ;; ─── 复制 / 剪切：有选区作用于选区，无选区作用于当前行 ─────────────
-;; 触屏长按拖选产生 region（真机实测），无选区时整行操作更符合触屏直觉。
+;; 无选区时整行操作更符合触屏直觉。
 
 (defun custom/touch-copy ()
   "复制：有选区复制选区，否则复制当前行。"
@@ -56,12 +53,11 @@
       (modifier-bar-mode 'toggle)
     (message "本 Emacs 无 modifier-bar（需 Android 官方构建）")))
 
-;; ─── modifier-bar 追加 Tab/ESC 按钮（2026-08-16）──────────────────
-;; modifier-bar 的按钮集合其实是 secondary-tool-bar-map（Emacs 30 通用
-;; 机制，非上游写死，PLAN 旧结论「不可配」作废）；TAB/ESC 非修饰键，
-;; 塞进 unread-command-events 即等同物理按键。
+;; ─── modifier-bar 追加 Tab/ESC 按钮 ────────────────────────────────
+;; 按钮集合即 secondary-tool-bar-map（Emacs 30 通用机制，可整体重建）；
+;; TAB/ESC 非修饰键，塞进 unread-command-events 即等同物理按键。
 
-(defun custom/modbar-tab ()  "发送 TAB 键（等同物理键盘 Tab：补全切换/缩进等场景）。"
+(defun custom/modbar-tab ()  "发送 TAB 键（等同物理键盘 Tab）。"
   (interactive)
   (setq unread-command-events (list ?\t)))
 
@@ -73,18 +69,15 @@
 (defun custom/modbar--badge (name)
   "取 data/icons/mod-NAME 徽章图像。
 PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深浅主题自动
-适配；XPM 路线真机不渲染已弃，PNG alpha 在 Lucid 露白底仅兜底）。
-位图不支持运行时缩放，尺寸烤在资产（字母 28×28、Tab/Esc 49×28，
-改尺寸须 justfile 调参重跑）。"
+适配；PNG alpha 在 Lucid 露白底，仅兜底）。
+位图不支持运行时缩放，尺寸烤在资产（字母 28×28、Tab/Esc 49×28）。"
   (find-image
    `((:type pbm :file ,(concat "mod-" name ".pbm"))
      (:type png :file ,(concat "mod-" name ".png")))))
 
 (defun custom/modbar--setup ()
-  "整套重建 modifier-bar：六修饰键 + Tab/ESC 统一为文字徽章风格。
-官方实现里六修饰键是 35×19 PBM 位图徽章，与本项目图标风格不搭；
-`secondary-tool-bar-map' 可整体重建，按键派发走 `input-decode-map'
-（mode 开启时官方已绑定），不受 map 重建影响。
+  "整套重建 modifier-bar：六修饰键 + Tab/ESC 统一为文字徽章风格
+（官方原图是 35×19 PBM 徽章，风格不搭）。
 `modifier-bar-mode' 每次开启都会重置该 map，须在其后调用。"
   (when (and (bound-and-true-p modifier-bar-mode)
              (fboundp 'modifier-bar-available-p))
@@ -120,7 +113,7 @@ PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深�
             (esc menu-item "ESC Key" custom/modbar-esc
                  :help "发送 ESC 键"
                  :image ,(custom/modbar--badge "esc"))))
-    ;; 就地重建后必须刷掉 tool-bar 键映射缓存（按 map 身份哈希缓存）
+    ;; 重建后刷掉 tool-bar 键映射缓存（按 map 身份哈希缓存）
     (when (fboundp 'tool-bar--flush-cache)
       (tool-bar--flush-cache))
     (force-mode-line-update t)))
@@ -135,8 +128,7 @@ PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深�
 
 (defun custom/touch-find-file ()
   "打开文件：默认落点强制为共享存储根。
-default-directory 是 buffer 局部值，启动期生成的 buffer（scratch/
-dashboard）在 setq-default 前已持有 ~，按钮侧显式绑定才可靠。"
+启动期 buffer 在 setq-default 前已持有 ~，须显式绑定。"
   (interactive)
   (let ((default-directory
           (if (file-directory-p custom/touch-storage-root)
@@ -152,12 +144,10 @@ dashboard）在 setq-default 前已持有 ~，按钮侧显式绑定才可靠。"
 
 (when custom:android-p
   ;; 打开文件/文件夹的默认落点 = 共享存储根（授权「所有文件访问」后
-  ;; 可读写；scratch/dashboard 等无本地值的 buffer 继承此默认，
-  ;; 文件 buffer 仍默认到自身所在目录，行为不变）
+  ;; 可读写；文件 buffer 仍默认到自身所在目录，行为不变）
   (when (file-directory-p "/storage/emulated/0/")
     (setq-default default-directory "/storage/emulated/0/")
-    ;; 启动期 buffer 在 setq-default 前已生成，补齐局部值（dired 等此后
-    ;; 新 buffer 自然继承默认值）
+    ;; 启动期 buffer 已持有旧值，补齐局部值
     (dolist (buf (buffer-list))
       (unless (buffer-local-value 'buffer-file-name buf)
         (with-current-buffer buf
@@ -169,23 +159,21 @@ dashboard）在 setq-default 前已持有 ~，按钮侧显式绑定才可靠。"
         touch-screen-word-select t
         touch-screen-extend-selection t)
 
-  ;; 全局 t 的副作用：展示型 read-only buffer 内 tap 也弹键盘（手册
-  ;; 6.2：该变量支持 buffer-local，逐 buffer 停用）
+  ;; 展示型 read-only buffer 内 tap 也弹键盘，逐 buffer 停用
   (dolist (hook '(dashboard-mode-hook eww-mode-hook nov-mode-hook
                    Info-mode-hook help-mode-hook))
     (add-hook hook #'custom/touch-no-keyboard))
 
-  ;; 响铃以振动实现（手册 H.6），默认时长偏长，调短减少打扰（10–1000ms）
+  ;; 响铃以振动实现，默认时长偏长，调短（10–1000ms）
   (when (boundp 'android-keyboard-bell-duration)
     (setq android-keyboard-bell-duration 30))
 
-  ;; 触屏无菜单交互场景，关闭菜单栏省一行（命令走 tool-bar / M-x）
+  ;; 触屏无菜单交互，关闭菜单栏（命令走 tool-bar / M-x）
   (menu-bar-mode -1)
 
-  ;; 修饰键交官方 modifier-bar，默认开（tool-bar 首位按钮可开关）；
-  ;; 每次开启后追加 Tab/ESC 自定义按钮（mode 会重置 map）。
-  ;; setup 的 find-image 依赖 init-bar 安装时把 data/icons 加入
-  ;; image-load-path，而本模块先于 init-bar 加载，须延迟执行
+  ;; 修饰键交官方 modifier-bar，默认开（tool-bar 首位按钮可开关）。
+  ;; 本模块先于 init-bar 加载，image-load-path 未就位，setup 须延迟到
+  ;; init-bar 之后执行
   (when (fboundp 'modifier-bar-mode)
     (modifier-bar-mode 1)
     (advice-add 'modifier-bar-mode :after

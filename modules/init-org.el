@@ -4,9 +4,9 @@
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:
-;; 从桌面移植的简化版：基础编辑体验设置 + inbox/agenda/roam capture 模板
-;; （删除依赖 agenote 的经验卡模板）+ org-roam（sqlite3 CLI 后端，见下）。
-;; 不装 org-modern：Android sfnt 字体后端不支持其 Nerd 字形（PLAN §13）。
+;; 从桌面移植的简化版：基础编辑体验设置 + inbox/agenda/roam capture
+;; 模板 + org-roam（sqlite3 CLI 后端，见下）。
+;; 不装 org-modern：Android sfnt 字体后端不支持其 Nerd 字形。
 
 ;;; Code:
 
@@ -90,31 +90,29 @@
             #'custom/org-capture--clear-state))
 
 ;; ─── org-roam（sqlite3 CLI 后端，db 各端独立重建） ──────────────────
-;; 官方 Android APK 无内置 sqlite 亦无动态模块（真机 (featurep 'sqlite3)
-;; = nil），org-roam 2.3+ 固定 emacsql 内置后端不可用 → pin 2.2.2 +
-;; emacsql 3.1.1（sqlite3 CLI 后端仅存于 emacsql 3.x），走 Termux 的
-;; sqlite3 可执行文件（executable-find 守卫，缺失则整体跳过）。
-;; 已知代价：每查询 spawn 进程（官方标注 BROKEN，#1927 缓存 bug）；
-;; 调研记录见 .agents/workfile/researcher/org-roam-no-sqlite.md。
+;; Android 官方 APK 无内置 sqlite（(featurep 'sqlite3) = nil），org-roam
+;; 2.3+ 的 emacsql 内置后端不可用 → pin 2.2.2 + emacsql 3.1.1（sqlite3
+;; CLI 后端仅存于 emacsql 3.x），走 Termux 的 sqlite3（缺失则跳过）。
+;; 已知代价：每查询 spawn 进程（官方标注 BROKEN，#1927 缓存 bug）。
 
 (let ((sqlite3 (executable-find "sqlite3")))
   (if (not sqlite3)
       (display-warning 'init-org
                        "sqlite3 CLI 不可用，org-roam 未启用（Termux: pkg install sqlite3）")
     (use-package emacsql)
-    ;; connector 走 emacsql-sqlite3（CLI 后端），org-roam 的声明依赖里
-    ;; 没有它（connector 是运行时选择），须显式安装
+    ;; connector 是运行时选择，org-roam 声明依赖里没有 emacsql-sqlite3，
+    ;; 须显式安装
     (use-package emacsql-sqlite3)
     (use-package org-roam
       :defer t
       :commands (org-roam-node-find org-roam-node-insert org-roam-buffer-toggle)
       :init
-      ;; db-autosync 启动即访问 roam 目录，须先确保存在
+      ;; db-autosync 启动即访问 roam 目录，先确保存在
       (custom/org--ensure-directories)
       (setq org-roam-database-connector 'sqlite3)
       :custom
       (org-roam-directory custom:org-roam-directory)
-      ;; db 不随 Syncthing 同步（默认会落在 roam 目录内），放缓存区各端独立
+      ;; db 放缓存区，不随 Syncthing 同步（各端独立重建）
       (org-roam-db-location
        (expand-file-name ".cache/emacs/org-roam.db" custom:data-home))
       (org-roam-completion-everywhere nil)

@@ -5,7 +5,7 @@
 
 ;;; Commentary:
 ;; 持久化状态统一落 custom:var-directory（~/.local/state/emacs，目录
-;; 由 init-basis 定义）。savehist 让 vertico 补全历史跨会话。
+;; 由 init-basis 定义）。
 
 ;;; Code:
 

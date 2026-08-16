@@ -105,8 +105,7 @@
 
 (use-package which-key
   :custom (which-key-idle-delay 0.6)
-          ;; 底部弹窗（触屏视线近）；side window bar 已废弃（方案 F），
-          ;; 无叠放约束，slot 走默认
+          ;; 底部弹窗（触屏视线近）
           (which-key-side-window-location 'bottom)
   :config
   (custom/which-key-apply-descriptions)
