@@ -137,27 +137,25 @@ icons:
         cp "$tmp/$name-pad.svg" "data/icons/$name.svg"
     done
     # modifier-bar 徽章：修饰键取前缀单字母（C S M A s H），Tab/Esc 全名。
-    # 字体 = unscii-16（8×16 像素字体，公有领域，方整干净）：按最终尺寸
-    # 直出不缩放（像素字体缩放会糊），笔画阈值化。输出 PBM 位图（官方
-    # 修饰键同机制，Android 真机验证可行；位图按工具栏前景色着色，
-    # 深浅主题自动适配）。XPM 真机不渲染已弃；PNG alpha 露白底仅兜底。
-    # 显示尺寸烤死在资产：字母 32×32、Tab/Esc 64×32。
+    # 字体 = Cozette（MIT 许可像素字体，原生 6×13 网格，2×=26px 整数
+    # 倍渲染保网格对齐）：按最终尺寸直出不缩放，笔画阈值化。输出 PBM
+    # 位图（官方修饰键同机制，Android 真机验证可行；位图按工具栏前景
+    # 色着色，深浅主题自动适配）。XPM 真机不渲染已弃；PNG alpha 露白底
+    # 仅兜底。显示尺寸烤死在资产：字母 32×32、Tab/Esc 64×32。
     command -v pngtopam >/dev/null || { echo "需要 netpbm（guix install netpbm）"; exit 1; }
-    if ! fc-list :family 2>/dev/null | grep -i "^.*unscii" >/dev/null; then
+    if ! fc-list :family 2>/dev/null | grep -i cozette >/dev/null; then
         command -v curl >/dev/null || { echo "需要 curl"; exit 1; }
-        curl -fsSL --retry 3 -o "$tmp/unscii.tar.gz" \
-            "https://codeload.github.com/viznut/unscii/tar.gz/refs/heads/main"
         mkdir -p "${HOME}/.local/share/fonts"
-        tar xzOf "$tmp/unscii.tar.gz" unscii-main/fontfiles/unscii-16.ttf \
-            > "${HOME}/.local/share/fonts/unscii-16.ttf"
+        curl -fsSL --retry 3 -o "${HOME}/.local/share/fonts/CozetteVector.ttf" \
+            "https://github.com/slavfox/Cozette/releases/latest/download/CozetteVector.ttf"
         fc-cache -f >/dev/null 2>&1 || true
-        fc-list :family | grep -i unscii >/dev/null \
-            || { echo "unscii 字体安装失败"; exit 1; }
+        fc-list :family | grep -i cozette >/dev/null \
+            || { echo "Cozette 字体安装失败"; exit 1; }
     fi
     mk_badge() {  # $1=name $2=label $3=outW $4=outH $5=fontSize
         local name="$1" label="$2" ow="$3" oh="$4" fs="$5"
         printf '%s\n' \
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"$ow\" height=\"$oh\"><text x=\"$((ow/2))\" y=\"$((oh+1))\" font-family=\"unscii\" font-size=\"$fs\" fill=\"#000000\" text-anchor=\"middle\">$label</text></svg>" \
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"$ow\" height=\"$oh\"><text x=\"$((ow/2))\" y=\"$((oh*3/4+1))\" font-family=\"CozetteVector\" font-size=\"$fs\" fill=\"#000000\" text-anchor=\"middle\">$label</text></svg>" \
             > "$tmp/mod-$name.svg"
         rsvg-convert "$tmp/mod-$name.svg" > "$tmp/mod-$name.png"
         cp "$tmp/mod-$name.png" "data/icons/mod-$name.png"
@@ -166,15 +164,15 @@ icons:
         pngtopam -alpha "$tmp/mod-$name.png" \
             | pgmtopbm -threshold | pnminvert > "data/icons/mod-$name.pbm"
     }
-    mk_badge control  C   32 32 32
-    mk_badge shift    S   32 32 32
-    mk_badge meta     M   32 32 32
-    mk_badge alt      A   32 32 32
-    mk_badge super    s   32 32 32
-    mk_badge hyper    H   32 32 32
-    mk_badge tab      Tab 64 32 32
-    mk_badge esc      Esc 64 32 32
-    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底 + 8 枚 modifier-bar 徽章（PBM/unscii）"
+    mk_badge control  C   32 32 26
+    mk_badge shift    S   32 32 26
+    mk_badge meta     M   32 32 26
+    mk_badge alt      A   32 32 26
+    mk_badge super    s   32 32 26
+    mk_badge hyper    H   32 32 26
+    mk_badge tab      Tab 64 32 26
+    mk_badge esc      Esc 64 32 26
+    echo "已生成 10 枚 Papirus symbolic .svg + PNG 兜底 + 8 枚 modifier-bar 徽章（PBM/Cozette）"
 
 # 下载 Maple Mono NF CN（中英等宽 + Nerd 图标）并安装。
 # Android → Emacs home 的 fonts/（sfnt-android 枚举）；桌面 → fontconfig 用户目录。
