@@ -65,6 +65,8 @@
        `((:type png :file ,(concat (symbol-name key) ".png")
                 :height ,custom/bar-icon-height)))))
 
+(declare-function custom/save-buffer-and-recentf "init-ui")
+
 (defun custom/bar--add-button (key label command help)
   "向 `tool-bar-map' 添加使用 data/icons/<KEY> 图标的按钮。"
   (define-key tool-bar-map (vector key)
@@ -93,7 +95,8 @@
                           "显示/隐藏修饰键栏")
   (custom/bar--add-button 'open "开" #'custom/touch-find-file
                           "打开文件（默认共享存储根）")
-  (custom/bar--add-button 'save "存" #'save-buffer "保存 (C-x C-s)")
+  (custom/bar--add-button 'save "存" #'custom/save-buffer-and-recentf
+                          "保存并记录最近文件")
   (custom/bar--add-button 'copy "复" #'custom/touch-copy "复制选区/当前行")
   (custom/bar--add-button 'paste "贴" #'yank "粘贴 (C-y)")
   (custom/bar--add-button 'cut "剪" #'custom/touch-cut "剪切选区/当前行")

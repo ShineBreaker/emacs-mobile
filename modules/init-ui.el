@@ -232,10 +232,22 @@
        (not (buffer-base-buffer))
        (not (file-remote-p buffer-file-name))))
 
+(defun custom/recentf-save ()
+  "持久化 recentf 列表（Android 后台被杀时 kill-emacs-hook 不执行）。"
+  (when (and (bound-and-true-p recentf-mode) (fboundp 'recentf-save-list))
+    (recentf-save-list)))
+
 (defun custom/save-user-file-buffers ()
-  "保存已修改的本地用户文件 buffer。"
+  "保存已修改的本地文件 buffer，并持久化 recentf 列表。"
   (setq custom--focus-save-timer nil)
-  (save-some-buffers t #'custom/user-file-buffer-p))
+  (save-some-buffers t #'custom/user-file-buffer-p)
+  (custom/recentf-save))
+
+(defun custom/save-buffer-and-recentf ()
+  "保存当前 buffer 并持久化 recentf 列表（tool-bar 保存按钮用）。"
+  (interactive)
+  (save-buffer)
+  (custom/recentf-save))
 
 (defun custom/schedule-focus-save ()
   "按焦点状态安排或取消空闲保存（有 frame 聚焦时不保存）。"

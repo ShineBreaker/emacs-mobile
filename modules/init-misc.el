@@ -5,12 +5,14 @@
 
 ;;; Commentary:
 ;; 持久化状态统一落 custom:var-directory（~/.local/state/emacs，目录
-;; 由 init-basis 定义）。
+;; 由 init-basis 定义）。recentf 落盘走显式保存点（失焦保存与 tool-bar
+;; 保存按钮，见 init-ui.el）：Android 后台被杀时 kill-emacs-hook 不
+;; 执行，定时器在 30.2 亦不存在。
 
 ;;; Code:
 
 (use-package recentf
-  :init
+  :config
   (recentf-mode)
   :custom
   (recentf-save-file (expand-file-name "recentf" custom:var-directory))
