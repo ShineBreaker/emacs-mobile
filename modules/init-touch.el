@@ -13,6 +13,7 @@
 
 (declare-function dashboard-open "dashboard")
 (declare-function dired-mouse-find-file "dired")
+(declare-function custom/icon-asset "init-basis")
 (defvar dired-mode-map)
 
 ;; ─── 复制 / 剪切：有选区作用于选区，无选区作用于当前行 ─────────────
@@ -68,15 +69,6 @@
   (interactive)
   (setq unread-command-events (list ?\e)))
 
-(defun custom/modbar--badge (name)
-  "取 data/icons/mod-NAME 徽章图像。
-PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深浅主题自动
-适配；PNG alpha 在 Lucid 露白底，仅兜底）。
-位图不支持运行时缩放，尺寸烤在资产（字母 32×32、Tab/Esc 64×32）。"
-  (find-image
-   `((:type pbm :file ,(concat "mod-" name ".pbm"))
-     (:type png :file ,(concat "mod-" name ".png")))))
-
 (defun custom/modbar--setup ()
   "整套重建 modifier-bar：六修饰键 + Tab/ESC 统一为文字徽章风格
 （官方原图是 35×19 PBM 徽章，风格不搭）。
@@ -87,34 +79,34 @@ PBM 位图优先（官方修饰键同机制，按工具栏前景色着色、深�
           `(keymap
             (control menu-item "Control Key" event-apply-control-modifier
                      :help "Add Control modifier to the following event"
-                     :image ,(custom/modbar--badge "control")
+                     :image ,(custom/icon-asset "control" t)
                      :enable (modifier-bar-available-p 'control))
             (shift menu-item "Shift Key" event-apply-shift-modifier
                    :help "Add Shift modifier to the following event"
-                   :image ,(custom/modbar--badge "shift")
+                   :image ,(custom/icon-asset "shift" t)
                    :enable (modifier-bar-available-p 'shift))
             (meta menu-item "Meta Key" event-apply-meta-modifier
                   :help "Add Meta modifier to the following event"
-                  :image ,(custom/modbar--badge "meta")
+                  :image ,(custom/icon-asset "meta" t)
                   :enable (modifier-bar-available-p 'meta))
             (alt menu-item "Alt Key" event-apply-alt-modifier
                  :help "Add Alt modifier to the following event"
-                 :image ,(custom/modbar--badge "alt")
+                 :image ,(custom/icon-asset "alt" t)
                  :enable (modifier-bar-available-p 'alt))
             (super menu-item "Super Key" event-apply-super-modifier
                    :help "Add Super modifier to the following event"
-                   :image ,(custom/modbar--badge "super")
+                   :image ,(custom/icon-asset "super" t)
                    :enable (modifier-bar-available-p 'super))
             (hyper menu-item "Hyper Key" event-apply-hyper-modifier
                    :help "Add Hyper modifier to the following event"
-                   :image ,(custom/modbar--badge "hyper")
+                   :image ,(custom/icon-asset "hyper" t)
                    :enable (modifier-bar-available-p 'hyper))
             (tab menu-item "TAB Key" custom/modbar-tab
                  :help "发送 TAB 键"
-                 :image ,(custom/modbar--badge "tab"))
+                 :image ,(custom/icon-asset "tab" t))
             (esc menu-item "ESC Key" custom/modbar-esc
                  :help "发送 ESC 键"
-                 :image ,(custom/modbar--badge "esc"))))
+                 :image ,(custom/icon-asset "esc" t))))
     ;; 重建后刷掉 tool-bar 键映射缓存（按 map 身份哈希缓存）
     (when (fboundp 'tool-bar--flush-cache)
       (tool-bar--flush-cache))

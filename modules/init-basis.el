@@ -43,6 +43,46 @@
   (expand-file-name "inbox.org" custom:org-directory)
   "capture inbox 文件。")
 
+;; ─── 图标与字形（唯一入口：tool-bar 按钮、modifier-bar 徽章、mode-line 字形） ──
+
+(defun custom/icon--svg-image (name color height)
+  "重着色 data/icons/NAME.svg 的 ColorScheme-Text 为 COLOR 后按 HEIGHT 建图；
+无 librsvg 或文件缺失时返回 nil。"
+  (let ((svg (expand-file-name (concat name ".svg")
+                               (expand-file-name "data/icons"
+                                                 user-emacs-directory))))
+    (and (image-type-available-p 'svg)
+         (file-exists-p svg)
+         (ignore-errors
+          (create-image
+           (replace-regexp-in-string
+            "ColorScheme-Text { color:#[0-9a-fA-F]\\{6\\}"
+            (concat "ColorScheme-Text { color:" color)
+            (with-temp-buffer
+              (insert-file-contents svg)
+              (buffer-string)))
+           'svg t :height height)))))
+
+(defun custom/icon-asset (key &optional mod height color)
+  "KEY 按钮图标：MOD 非 nil 时查 mod-KEY 徽章（PBM 优先 PNG 兜底），
+否则查 KEY 的 SVG（按 COLOR 重着色）/PNG。按序回退，全部缺失返回 nil。"
+  (let ((dir (expand-file-name "data/icons" user-emacs-directory)))
+    (if mod
+        (find-image
+         `((:type pbm :file ,(expand-file-name (format "mod-%s.pbm" key) dir))
+           (:type png :file ,(expand-file-name (format "mod-%s.png" key) dir))))
+      (or (custom/icon--svg-image key color height)
+          (find-image
+           `((:type png :file ,(expand-file-name (format "%s.png" key) dir)
+                    :height ,height)))))))
+
+(defun custom/glyph (code fallback)
+  "GUI 返回 NF 字形 CODE（无字形环境 tty 返回 FALLBACK 文字）。
+GUI/tty 字形降级的唯一入口。"
+  (if (display-graphic-p)
+      code
+    fallback))
+
 ;; 启动优化复位（early-init 推高了 GC 阈值并绕过文件名处理器）。
 ;; 复位放 startup 末尾：after-init 的 dashboard 生成仍在高阈值下进行。
 (defun custom/restore-startup-perf ()

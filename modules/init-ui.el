@@ -142,7 +142,7 @@
 (defun custom/mode-line--switch-button ()
   "mode-line 缓冲区切换按钮（GUI NF 字形，tty 用「换」）。"
   (propertize
-   (format " %s " (if (display-graphic-p) "\uF0EC" "换"))
+   (format " %s " (custom/glyph "\uF0EC" "换"))
    'local-map (make-mode-line-mouse-map
                'mouse-1 #'custom/mode-line-switch-buffer)
    'mouse-face 'highlight
@@ -151,7 +151,7 @@
 (defun custom/mode-line--close-button ()
   "mode-line 关闭按钮（GUI NF 字形，tty 用 ×）。"
   (propertize
-   (format " %s " (if (display-graphic-p) "\uF00D" "×"))
+   (format " %s " (custom/glyph "\uF00D" "×"))
    'local-map (make-mode-line-mouse-map
                'mouse-1 #'kill-buffer-and-window)
    'mouse-face 'highlight
@@ -160,7 +160,7 @@
 (defun custom/mode-line--recenter-button ()
   "mode-line 右端「当前行回中」按钮。"
   (propertize
-   (format "%s " (if (display-graphic-p) "\uF037" "中"))
+   (format "%s " (custom/glyph "\uF037" "中"))
    'local-map (make-mode-line-mouse-map
                'mouse-1 #'recenter-top-bottom)
    'mouse-face 'highlight
@@ -169,13 +169,14 @@
 (defun custom/mode-line--which-key-next-button ()
   "mode-line which-key 翻页按钮（GUI NF 字形，tty 用 »）。"
   (propertize
-   (format " %s " (if (display-graphic-p) "\uF0A9" "»"))
+   (format " %s " (custom/glyph "\uF0A9" "»"))
    'local-map (make-mode-line-mouse-map
                'mouse-1 #'custom/which-key-next-page)
    'mouse-face 'highlight
    'help-echo "which-key 下一页"))
 
 (declare-function custom/which-key-next-page "init-completion")
+(declare-function custom/glyph "init-basis")
 
 ;; 右端按钮组：`mode-line-format-right-align'（须裸符号，format-mode-line
 ;; 按变量处理）之后的构造整体右对齐，从右到左：中 回中、» 翻页、换 切缓冲区、✕ 关闭
