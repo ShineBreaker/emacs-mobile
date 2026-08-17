@@ -190,7 +190,8 @@
     (concat remote (string-join short "/"))))
 
 (defun custom/dashboard--recent-label (path)
-  "recents 条目文本：org 根下显示相对路径，其余目录首字母缩写。"
+  "recents 条目文本：org 根下显示相对路径，其余目录首字母缩写。
+（反映文件原名，不做标题替换。）"
   (let ((rel (and custom:org-directory
                   (file-in-directory-p path custom:org-directory)
                   (file-relative-name path custom:org-directory))))
@@ -229,9 +230,20 @@
 
 ;; ─── 笔记段：文件夹内最近修改的文件 ─────────────────────────────────
 ;; 直接列目录（按 mtime），不经 org-roam db——首屏即出、零延迟。
+;; 条目显示文件头 #+title:（时间戳文件名无信息量），缺失回退文件名。
 
 (declare-function custom/touch-show-keyboard "init-touch")
 (defvar org-capture-templates)
+
+(defun custom/dashboard--note-title (file)
+  "笔记 FILE 头部 #+title: 的值，缺失或读取失败回退文件名。
+只读首 4KB，N 个条目启动期一次性开销可忽略。"
+  (or (ignore-errors
+        (with-temp-buffer
+          (insert-file-contents file nil 0 4096)
+          (when (re-search-forward "^#\\+title:[ \t]*\\(.*\\)" nil t)
+            (string-trim (match-string 1)))))
+      (file-name-nondirectory file)))
 
 (defun custom/dashboard-insert-roam (list-size)
   "笔记文件夹按修改时间最近的 LIST-SIZE 个文件。"
@@ -248,7 +260,7 @@
      `(lambda (&rest _) (find-file-existing ,el))
      (let ((icon (custom/dashboard--file-icon el)))
        (concat icon (unless (string-empty-p icon) " ")
-               (custom/dashboard--fit (file-name-nondirectory el)
+               (custom/dashboard--fit (custom/dashboard--note-title el)
                                       (length icon)))))))
 
 ;; ─── 抓笔记：触屏模板选择面板 ───────────────────────────────────────
