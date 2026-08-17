@@ -113,6 +113,38 @@
 (advice-add #'dashboard-insert-heading :around
             #'custom/dashboard-insert-heading-deco)
 
+;; ─── items 区逐行居中 ───────────────────────────────────────────────
+;; 官方 `dashboard-center-content' 是块居中：条目区共用一个前缀、块内
+;; 左对齐，最宽行决定偏移，窄屏下标题/短条目明显偏左。改为各行按
+;; 自身宽居中；宽度用官方 `dashboard-str-len'（像素法）——歧义宽字符
+;; （─ 等）string-width 记 1 列但 Maple 实渲 2 列，像素法真机精确。
+
+(defun custom/dashboard-center-lines (&rest _)
+  "items 区各行按可见内容宽重设居中前缀（覆盖官方块居中前缀）。
+条目行的前导缩进空格不计入居中宽度，并补入偏移使其推到不可见侧。"
+  (let ((start (car (last dashboard--section-starts))))
+    (when start
+      (save-excursion
+        (goto-char start)
+        (while (< (point) (point-max))
+          (let* ((bol (line-beginning-position))
+                 (eol (line-end-position))
+                 (txt (buffer-substring bol eol))
+                 (lead (progn (string-match "\\` *" txt)
+                              (match-end 0)))
+                 (w (dashboard-str-len (substring txt lead))))
+            (when (> w 0)
+              (let ((prefix (propertize
+                             " " 'display
+                             `(space . (:align-to (- center
+                                                     ,(+ (/ w 2.0) lead)))))))
+                (add-text-properties bol eol
+                                     `(line-prefix ,prefix
+                                       wrap-prefix ,prefix)))))
+          (forward-line 1))))))
+
+(advice-add #'dashboard-insert-items :after #'custom/dashboard-center-lines)
+
 ;; ─── 窄屏条目标签截断 ───────────────────────────────────────────────
 
 (defun custom/dashboard--take-width (str n &optional from-end)
