@@ -139,6 +139,10 @@
   (when (fboundp 'frame-toggle-on-screen-keyboard)
     (frame-toggle-on-screen-keyboard (selected-frame) nil)))
 
+;; dired 窄屏精简：隐藏权限/属主/大小/时间细节列，只留文件名
+;;（完整 -l 格式 60+ 列，手机屏文件名必然折行）
+(add-hook 'dired-mode-hook #'dired-hide-details-mode)
+
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
 (when custom:android-p

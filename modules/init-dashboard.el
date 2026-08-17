@@ -95,7 +95,6 @@
 (setq dashboard-set-heading-icons t
       dashboard-heading-icons
       `((recents . (custom/dashboard--heading-icon "\uF017"))
-        (agenda  . (custom/dashboard--heading-icon "\uF133"))
         (roam    . (custom/dashboard--heading-icon "\uF02E"))))
 
 (defun custom/dashboard-insert-heading-deco (fn heading &optional shortcut icon)
@@ -228,70 +227,29 @@
               (custom/dashboard--recent-label el)
               (length icon))))))
 
-;; ─── agenda/roam 延迟填充 ───────────────────────────────────────────
-;; 两段生成要拉起 org-agenda/org-roam 全家（约占启动大头），冷启动首屏
-;; 跳过，进入空闲后补齐刷新（recentf/banner 不受影响，首屏即有）。
+;; ─── 笔记段：文件夹内最近修改的文件 ─────────────────────────────────
+;; 直接列目录（按 mtime），不经 org-roam db——首屏即出、零延迟。
 
-(defvar custom/dashboard--warm nil
-  "t 时 agenda/roam 段直接生成（首屏后的补齐刷新）。")
-
-;; ─── roam 条目：最近修改的长期笔记 ──────────────────────────────────
-
-(declare-function custom/org-roam-recent-notes "init-org")
 (declare-function custom/touch-show-keyboard "init-touch")
 (defvar org-capture-templates)
 
 (defun custom/dashboard-insert-roam (list-size)
-  "最近修改的 Roam 笔记 LIST-SIZE 条；db 不可用时整块降级为 No items。
-数据访问统一走 `custom/org-roam-recent-notes'（init-org）。"
-  (when custom/dashboard--warm
-    (let ((items (custom/org-roam-recent-notes list-size)))
-      (dashboard-insert-section
-       "最近笔记"
-       items
-       list-size
-       'roam nil
-       `(lambda (&rest _) (find-file-existing ,(cdr el)))
-       (let ((icon (or (custom/dashboard--icon "\uF02E") "")))
-         (concat icon (unless (string-empty-p icon) " ")
-                 (custom/dashboard--fit (car el) (length icon))))))))
-
-(declare-function dashboard-agenda--sorted-agenda "dashboard-widgets")
-(defvar dashboard-agenda-action)
-
-(defun custom/dashboard-insert-agenda-deferred (list-size)
-  "agenda 条目（冷启动跳过，见 `custom/dashboard--warm'）。
-中文标题须直接传给 insert-section（官方 heading 英文原文会撑爆
-`dashboard--find-max-width' 的居中计算）。"
-  (when custom/dashboard--warm
-    (require 'org-agenda)
+  "笔记文件夹按修改时间最近的 LIST-SIZE 个文件。"
+  (let ((files (sort (directory-files custom:org-roam-directory t "\\.org\\'")
+                     (lambda (a b)
+                       (time-less-p
+                        (file-attribute-modification-time (file-attributes b))
+                        (file-attribute-modification-time (file-attributes a)))))))
     (dashboard-insert-section
-     "本周议程"
-     (dashboard-agenda--sorted-agenda)
+     "最近笔记"
+     files
      list-size
-     'agenda nil
-     `(lambda (&rest _)
-        (let ((file (get-text-property 0 'dashboard-agenda-file ,el))
-              (point (get-text-property 0 'dashboard-agenda-loc ,el)))
-          (funcall dashboard-agenda-action file point)))
-     (format "%s" el))))
-
-(defun custom/dashboard--agenda-fit (items)
-  "agenda 条目串超宽时中截（窄屏防折行；substring 保留定位属性）。"
-  (mapcar (lambda (s) (custom/dashboard--fit s 6)) items))
-
-(advice-add #'dashboard-agenda--sorted-agenda :filter-return
-            #'custom/dashboard--agenda-fit)
-
-(defun custom/dashboard--warm-fill ()
-  "补齐 agenda/roam 段并刷新仪表盘（空闲触发，不抢焦点）。"
-  (setq custom/dashboard--warm t)
-  (let ((buf (get-buffer dashboard-buffer-name)))
-    (when (buffer-live-p buf)
-      (with-current-buffer buf
-        (dashboard-insert-startupify-lists t)))))
-
-(run-with-idle-timer 4 nil #'custom/dashboard--warm-fill)
+     'roam nil
+     `(lambda (&rest _) (find-file-existing ,el))
+     (let ((icon (custom/dashboard--file-icon el)))
+       (concat icon (unless (string-empty-p icon) " ")
+               (custom/dashboard--fit (file-name-nondirectory el)
+                                      (length icon)))))))
 
 ;; ─── 抓笔记：触屏模板选择面板 ───────────────────────────────────────
 ;; org-mks（*Org Select*）以 `read-key-exclusive' 读键盘字符，tap 事件
@@ -385,8 +343,7 @@
 
 (setq dashboard-center-content t
       dashboard-show-shortcuts nil            ; 触屏无键盘
-      dashboard-agenda-prefix-format "  %s "  ; 默认 %i %-12:c 在 40 列吃 14 列
-      dashboard-items '((recents . 5) (agenda . 5) (roam . 5)))
+      dashboard-items '((recents . 5) (roam . 5)))
 
 ;; footer：固定标语 + 心形图标
 (setq dashboard-footer-messages '("The one true editor, Emacs!")
@@ -396,19 +353,10 @@
 
 (setf (alist-get 'recents dashboard-item-generators)
       #'custom/dashboard-insert-recents)
-(setf (alist-get 'agenda dashboard-item-generators)
-      #'custom/dashboard-insert-agenda-deferred)
 (setf (alist-get 'roam dashboard-item-generators)
       #'custom/dashboard-insert-roam)
 
 (dashboard-setup-startup-hook)
-
-;; Android 端口功耗管理下空闲计时器可能不触发，绝对计时器兜底补填
-(when (eq system-type 'android)
-  (run-with-timer 8 nil
-                  (lambda ()
-                    (unless custom/dashboard--warm
-                      (custom/dashboard--warm-fill)))))
 
 (provide 'init-dashboard)
 ;;; init-dashboard.el ends here
