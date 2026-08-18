@@ -186,6 +186,35 @@
   (truncate-string-to-width (format-mode-line mode-name)
                             12 nil nil "…"))
 
+(defun custom/mode-line-debug ()
+  "弹出 mode-line 排版诊断（窗宽/列宽/字形像素），真机排障取证。"
+  (interactive)
+  (let ((buf (get-buffer-create "*mode-line 诊断*")))
+    (with-current-buffer buf
+      (fundamental-mode)
+      (erase-buffer)
+      (insert
+       (format
+        "window: %d 列 / %d px   frame-char-width: %d px\n\
+string-pixel-width: a=%d 中=%d ·=%d ●=%d F002=%d F00D=%d\n\
+string-width: F002=%S F00D=%S ·=%S ●=%S\n\
+fringe: %S  scrollbar: %S\n\
+右组串: %S\n\
+右组串宽(列): %S\n\
+mode-line 渲染串宽(列): %S"
+        (window-total-width) (window-pixel-width) (frame-char-width)
+        (string-pixel-width "a") (string-pixel-width "中")
+        (string-pixel-width "·") (string-pixel-width "●")
+        (string-pixel-width "\uF002") (string-pixel-width "\uF00D")
+        (string-width "\uF002") (string-width "\uF00D")
+        (string-width "·") (string-width "●")
+        (fringe-columns 'right) (window-scroll-bar-columns)
+        (custom/mode-line--buttons)
+        (string-width (custom/mode-line--buttons))
+        (string-width (format-mode-line mode-line-format))))
+      (goto-char (point-min)))
+    (pop-to-buffer buf)))
+
 ;; 左段：修改标记 mode-name 百分比；右端按钮组从左到右：
 ;; 寻 导航、中 回中、» 翻页、换 切缓冲区、× 关闭。
 ;; `mode-line-format-right-align' 须裸符号（format-mode-line 按变量

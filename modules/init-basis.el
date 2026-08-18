@@ -92,9 +92,11 @@
       code
     fallback))
 
-;; NF 私用区字形在 Maple 中实渲 2 列，内部宽度表（string-width 与
-;; align-to 计量）默认记 1——右对齐/截断类计算会错位溢出。统一置 2。
-(set-char-table-range char-width-table '(#xE000 . #xF8FF) 2)
+;; NF 私用区字形宽度：GUI 按 Maple advance 渲染恰 1 列，宽度表默认记
+;; 1 即与渲染一致（置 2 会布局 2 列、字形墨迹占左半，高亮框/间距错位）；
+;; 终端把 PUA 记 2 列（tmux/utf8proc），NF 校验模式下同步置 2 保对齐。
+(when custom/glyph-nf-tty
+  (set-char-table-range char-width-table '(#xE000 . #xF8FF) 2))
 
 ;; 启动优化复位（early-init 推高了 GC 阈值并绕过文件名处理器）。
 ;; 复位放 startup 末尾：after-init 的 dashboard 生成仍在高阈值下进行。
