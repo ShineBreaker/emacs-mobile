@@ -159,6 +159,10 @@
 
 (use-package which-key
   :defer t
+  ;; Emacs 30 内置 3.6.1（中文描述列宽对齐的 string-width 修复在内置线；
+  ;; MELPA 版随上游归档停在 3.6.0 有对齐缺陷），禁用 straight 安装。
+  ;; 切换须删 straight 缓存：build/which-key 与 repos/emacs-which-key
+  :straight nil
   :custom (which-key-idle-delay 0.6)
           ;; 底部弹窗（触屏视线近）
           (which-key-side-window-location 'bottom)
