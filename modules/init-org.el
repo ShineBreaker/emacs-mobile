@@ -109,9 +109,47 @@
            "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%i\n")
           ("kr" "Roam 长期笔记" plain
            (file custom/org-capture--roam-file)
-           "#+title: %(custom/org-capture--roam-title-value)\n:PROPERTIES:\n:ID:       %(org-id-new)\n:CREATED:  %U\n:END:\n\n%?")))
+           "#+title: %(custom/org-capture--roam-title-value)\n:PROPERTIES:\n:ID:       %(org-id-new)\n:CREATED:  %U\n:END:\n\n%?")
+         ;; 隐藏模板（抓笔记面板过滤）：不弹 buffer 不等输入，直接完成
+          ("kq" "剪贴板速存" entry
+           (file ,custom:org-inbox-file)
+           "* %(custom/org-capture--clip-heading)\n:PROPERTIES:\n:CREATED: %U\n:END:\n%(custom/org-capture--clip-body)\n"
+           :prepend t :immediate-finish t)))
   (add-hook 'org-capture-after-finalize-hook
             #'custom/org-capture--clear-state))
+
+;; ─── 剪贴板速存：一键入库（tool-bar「速」钮），不弹模板面板 ────────
+
+(defvar custom/org-capture--clip-text nil
+  "本次速存的剪贴板内容（模板函数在动态作用域内读取）。")
+
+(defun custom/clipboard-content ()
+  "系统剪贴板文本（GUI selection 不可用时回退 kill-ring 头）。"
+  (or (ignore-errors (gui-get-selection 'CLIPBOARD 'STRING))
+      (car kill-ring)))
+
+(defun custom/org-capture--clip-heading ()
+  "速存条目标题：剪贴板首个非空行截 30 列。"
+  (let* ((text (string-trim (or custom/org-capture--clip-text "")))
+         (head (truncate-string-to-width
+                (or (car (split-string text "[\r\n]+")) "")
+                30 nil nil "…")))
+    (if (string-empty-p head) "（剪贴板内容）" head)))
+
+(defun custom/org-capture--clip-body ()
+  "速存条目正文：剪贴板全文。"
+  (or custom/org-capture--clip-text ""))
+
+(defun custom/inbox-quick-capture ()
+  "剪贴板一键速存为 inbox TODO 条目。"
+  (interactive)
+  (let ((clip (custom/clipboard-content)))
+    (if (or (null clip) (string-empty-p (string-trim clip)))
+        (message "剪贴板为空，未速存")
+      (require 'org-capture)
+      (let ((custom/org-capture--clip-text clip))
+        (org-capture nil "kq")
+        (message "已速存：%s" (custom/org-capture--clip-heading))))))
 
 ;; ─── org-roam（sqlite3 CLI 后端，db 各端独立重建） ──────────────────
 ;; Android 官方 APK 无内置 sqlite（(featurep 'sqlite3) = nil），org-roam

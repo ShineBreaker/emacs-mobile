@@ -380,7 +380,9 @@
   (let ((inhibit-read-only t))
     (erase-buffer)
     (insert (propertize "  选择抓笔记模板\n\n" 'face 'custom/dashboard-hero))
-    (dolist (entry org-capture-templates)
+    ;; 过滤 :immediate-finish 隐藏模板（如剪贴板速存，无输入环节）
+    (dolist (entry (seq-remove (lambda (e) (memq :immediate-finish e))
+                               org-capture-templates))
       (widget-create 'item
                      :tag (concat " " (nth 1 entry) " ")
                      :action (custom/capture--open (car entry))

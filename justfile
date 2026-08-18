@@ -98,7 +98,7 @@ icons:
         "save actions/document-save"        "copy actions/edit-copy"
         "paste actions/edit-paste"          "cut actions/edit-cut"
         "search actions/edit-find"          "theme status/night-light"
-        "config places/folder"              "dashboard actions/view-grid"
+        "config places/folder"              "quick actions/feather-zap"
     )
     missing=""
     for item in "${spec[@]}"; do

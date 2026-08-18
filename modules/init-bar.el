@@ -48,6 +48,7 @@
                      (custom/bar--icon-color)))
 
 (declare-function custom/save-buffer-and-recentf "init-ui")
+(declare-function custom/inbox-quick-capture "init-org")
 (declare-function custom/icon-asset "init-basis")
 
 (defun custom/bar--add-button (key label command help)
@@ -96,8 +97,8 @@
                               "切换深浅色主题")
       (custom/bar--add-button 'config "配" #'custom/touch-open-config
                               "打开配置文件夹（dired）")
-      (custom/bar--add-button 'dashboard "盘" #'dashboard-open
-                              "打开/刷新仪表盘")
+      (custom/bar--add-button 'quick "速" #'custom/inbox-quick-capture
+                              "剪贴板一键速存到 inbox")
       ;; keymap 按插入逆序渲染，反转一次使显示顺序 = 定义顺序（修=最左）
       (setq tool-bar-map (cons 'keymap (reverse (cdr tool-bar-map))))
       (tool-bar-mode 1))))

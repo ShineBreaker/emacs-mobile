@@ -19,7 +19,7 @@ tag `20260801` 的 24×24 symbolic 系列（单色、`ColorScheme-Text` CSS 变�
 | search | actions/edit-find-symbolic |
 | theme | status/night-light-symbolic |
 | config | places/folder-symbolic |
-| dashboard | actions/view-grid-symbolic |
+| quick | actions/feather-zap-symbolic |
 
 另有一组 **modifier-bar 徽章** `mod-*.png`（168×96 描边文字徽章：
 Ctrl/Shift/Meta/Alt/Sup/Hyp/Tab/Esc，中灰、双主题通吃）——非 Papirus

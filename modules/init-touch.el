@@ -47,6 +47,42 @@
       (call-interactively #'consult-ripgrep)
     (call-interactively #'consult-line)))
 
+;; ─── 触屏确认面板（widget 是/否，替代键盘 y-or-n） ─────────────────
+
+(defvar custom/touch-confirm-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mouse-1] #'widget-button-click)
+    (define-key map [touchscreen-begin] #'widget-button-click)
+    map))
+
+(define-derived-mode custom/touch-confirm-mode special-mode "确认"
+  "触屏确认面板。"
+  (setq-local touch-screen-display-keyboard nil))
+
+(defun custom/touch-confirm (title action)
+  "当前窗弹确认面板：TITLE 提示，点「确认」执行 ACTION（零参函数）。"
+  (switch-to-buffer (get-buffer-create "*确认*"))
+  (custom/touch-confirm-mode)
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert "\n  " (propertize title 'face 'bold) "\n\n  ")
+    (widget-create 'item
+                   :tag " 确认 "
+                   :action (lambda (&rest _) (kill-buffer) (funcall action))
+                   :button-face 'bold
+                   :mouse-face 'highlight
+                   :button-prefix "" :button-suffix ""
+                   :format "%[%t%]")
+    (insert "    ")
+    (widget-create 'item
+                   :tag " 取消 "
+                   :action (lambda (&rest _) (kill-buffer))
+                   :button-face 'shadow
+                   :mouse-face 'highlight
+                   :button-prefix "" :button-suffix ""
+                   :format "%[%t%]")
+    (goto-char (point-min))))
+
 ;; ─── modifier-bar 开关 / 打开配置（tool-bar 首尾按钮的命令） ────────
 
 (defun custom/touch-toggle-modifier-bar ()
@@ -142,6 +178,85 @@
 ;; dired 窄屏精简：隐藏权限/属主/大小/时间细节列，只留文件名
 ;;（完整 -l 格式 60+ 列，手机屏文件名必然折行）
 (add-hook 'dired-mode-hook #'dired-hide-details-mode)
+
+;; ─── dired 触屏操作：改名/删除走 minibuffer 点选，新建直接输入 ────
+;; dired 里 tap 即打开文件，无「只选中不打开」交互；操作对象改由
+;; minibuffer 补全列表（vertico 点选）指定。
+
+(declare-function dired-revert "dired")
+(declare-function dired-create-empty-file "dired")
+(declare-function dired-create-directory "dired")
+(declare-function dired-current-directory "dired")
+
+(defun custom/dired-touch-rename ()
+  "重命名：点选文件 → 输入新名。"
+  (interactive)
+  (let* ((dir (dired-current-directory))
+         (old (read-file-name "重命名（点选文件）: " dir nil t))
+         (new (read-file-name "新名字: " dir nil nil
+                              (file-name-nondirectory old))))
+    (unless (equal old new)
+      (rename-file old new)
+      (dired-revert))))
+
+(defun custom/dired-touch-delete ()
+  "删除：点选文件 → 确认面板 → 删除。"
+  (interactive)
+  (let* ((dir (dired-current-directory))
+         (file (read-file-name "删除（点选文件）: " dir nil t)))
+    (if (file-directory-p file)
+        (message "暂不支持删除目录")
+      (custom/touch-confirm
+       (format "删除 %s ？" (file-name-nondirectory file))
+       (lambda ()
+         (delete-file file)
+         (dired-revert))))))
+
+(defun custom/dired--op-button (glyph fallback help command)
+  "dired mode-line 操作按钮。"
+  (propertize
+   (format " %s" (custom/glyph glyph fallback))
+   'local-map (make-mode-line-mouse-map 'mouse-1 command)
+   'mouse-face 'highlight
+   'help-echo help))
+
+(defun custom/dired--op-buttons ()
+  "dired 文件操作钮串：改名/删除/建文件/建目录。"
+  (concat
+   (custom/dired--op-button "\uF304" "改" "重命名（点选文件）"
+                            #'custom/dired-touch-rename)
+   (custom/dired--op-button "\uF1F8" "删" "删除（点选文件）"
+                            #'custom/dired-touch-delete)
+   (custom/dired--op-button "\uF15B" "文" "新建文件"
+                            #'dired-create-empty-file)
+   (custom/dired--op-button "\uF07B" "夹" "新建目录"
+                            #'dired-create-directory)))
+
+(defun custom/dired-setup-mode-line ()
+  "dired buffer：mode-line 右端钮组前插入文件操作钮。"
+  ;; mode-name 压缩（默认 \"Dired by name\" 太占宽，窄屏挤出按钮）
+  (setq-local mode-name "Dired")
+  (let* ((fmt (default-value 'mode-line-format))
+         (pos (seq-position fmt 'mode-line-format-right-align)))
+    (when pos
+      (setq-local mode-line-format
+                  (append (seq-take fmt pos)
+                          (list '(:eval (custom/dired--op-buttons)))
+                          (seq-drop fmt pos))))))
+
+(add-hook 'dired-mode-hook #'custom/dired-setup-mode-line)
+
+;; agenda 条目 tap（mouse-2）= 定位行 + 跳转源条目（编辑管理在 Orgzly，
+;; Emacs 侧只读查看）
+(defvar org-agenda-mode-map)  ; org-agenda.el
+(declare-function org-agenda-switch-to "org-agenda")
+(with-eval-after-load 'org-agenda
+  (define-key org-agenda-mode-map [mouse-2]
+    (lambda (e)
+      "tap 条目行跳转源条目。"
+      (interactive "e")
+      (posn-set-point (event-start e))
+      (org-agenda-switch-to))))
 
 ;; ─── Android 触屏特化 ───────────────────────────────────────────────
 
