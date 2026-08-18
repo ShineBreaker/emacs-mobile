@@ -118,6 +118,7 @@ org 目录存在:           %s
   (require 'init-bar)
   (require 'init-completion)
   (require 'init-org)
+  (require 'init-markdown)
   (require 'init-dashboard)
   (require 'init-reading)
   (require 'init-misc))
