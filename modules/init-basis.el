@@ -76,12 +76,25 @@
            `((:type png :file ,(expand-file-name (format "%s.png" key) dir)
                     :height ,height)))))))
 
+(defvar custom/glyph-nf-tty
+  (equal (getenv "EMACS_MOBILE_NF_TTY") "1")
+  "tty 下宿主终端是否带 Nerd Font 字形（tmux 校验对齐真机宽度模型用，
+经环境变量 EMACS_MOBILE_NF_TTY=1 开启）。")
+
+(defun custom/glyph-nf-p ()
+  "当前环境是否按 NF 字形渲染（GUI 恒是；tty 由 `custom/glyph-nf-tty' 开）。"
+  (or (display-graphic-p) custom/glyph-nf-tty))
+
 (defun custom/glyph (code fallback)
-  "GUI 返回 NF 字形 CODE（无字形环境 tty 返回 FALLBACK 文字）。
-GUI/tty 字形降级的唯一入口。"
-  (if (display-graphic-p)
+  "有 NF 字形的环境返回 CODE，其余 tty 返回 FALLBACK 文字。
+字形降级的唯一入口。"
+  (if (custom/glyph-nf-p)
       code
     fallback))
+
+;; NF 私用区字形在 Maple 中实渲 2 列，内部宽度表（string-width 与
+;; align-to 计量）默认记 1——右对齐/截断类计算会错位溢出。统一置 2。
+(set-char-table-range char-width-table '(#xE000 . #xF8FF) 2)
 
 ;; 启动优化复位（early-init 推高了 GC 阈值并绕过文件名处理器）。
 ;; 复位放 startup 末尾：after-init 的 dashboard 生成仍在高阈值下进行。

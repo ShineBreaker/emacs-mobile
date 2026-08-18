@@ -139,42 +139,6 @@
   (interactive)
   (consult-buffer))
 
-(defun custom/mode-line--switch-button ()
-  "mode-line 缓冲区切换按钮（GUI NF 字形，tty 用「换」）。"
-  (propertize
-   (format " %s" (custom/glyph "\uF0EC" "换"))
-   'local-map (make-mode-line-mouse-map
-               'mouse-1 #'custom/mode-line-switch-buffer)
-   'mouse-face 'highlight
-   'help-echo "切换缓冲区"))
-
-(defun custom/mode-line--close-button ()
-  "mode-line 关闭按钮（GUI NF 字形，tty 用 ×）。"
-  (propertize
-   (format " %s" (custom/glyph "\uF00D" "×"))
-   'local-map (make-mode-line-mouse-map
-               'mouse-1 #'kill-buffer-and-window)
-   'mouse-face 'highlight
-   'help-echo "关闭当前 buffer 及其窗口"))
-
-(defun custom/mode-line--recenter-button ()
-  "mode-line 右端「当前行回中」按钮。"
-  (propertize
-   (format " %s" (custom/glyph "\uF037" "中"))
-   'local-map (make-mode-line-mouse-map
-               'mouse-1 #'recenter-top-bottom)
-   'mouse-face 'highlight
-   'help-echo "当前行回中"))
-
-(defun custom/mode-line--which-key-next-button ()
-  "mode-line which-key 翻页按钮（GUI NF 字形，tty 用 »）。"
-  (propertize
-   (format " %s" (custom/glyph "\uF0A9" "»"))
-   'local-map (make-mode-line-mouse-map
-               'mouse-1 #'custom/which-key-next-page)
-   'mouse-face 'highlight
-   'help-echo "which-key 下一页"))
-
 (declare-function custom/which-key-next-page "init-completion")
 (declare-function custom/glyph "init-basis")
 (declare-function consult-org-heading "consult")
@@ -189,30 +153,53 @@
    ((derived-mode-p 'nov-mode) (consult-imenu))
    (t (consult-line))))
 
-(defun custom/mode-line--nav-button ()
-  "mode-line 文档内导航按钮（GUI NF 字形，tty 用「寻」）。"
-  (propertize
-   (format " %s" (custom/glyph "\uF002" "寻"))
-   'local-map (make-mode-line-mouse-map
-               'mouse-1 #'custom/mode-line-navigate)
-   'mouse-face 'highlight
-   'help-echo "文档内导航（org 大纲 / epub 章节 / 本页搜索）"))
+;; ─── 右端按钮组：数据表驱动 ────────────────────────────────────────
+;; 对齐偏移须按真实字形宽自算：官方 `mode-line-format-right-align' 以
+;; string-width 计右组宽，NF 私用区字形记 1 列但 Maple 实渲 2 列，
+;; 组整体溢出右缘（× 钮出界不可点）。GUI NF 按 2 列计，tty 回退
+;; 字符无歧义按 string-width。
 
-;; 右端按钮组：`mode-line-format-right-align'（须裸符号，format-mode-line
-;; 按变量处理）之后的构造整体右对齐，从右到左：中 回中、» 翻页、换 切缓冲区、✕ 关闭
+(defconst custom/mode-line--right-buttons
+  '(("\uF002" "寻" "文档内导航（org 大纲 / epub 章节 / 本页搜索）"
+     custom/mode-line-navigate)
+    ("\uF037" "中" "当前行回中" recenter-top-bottom)
+    ("\uF0A9" "»" "which-key 下一页" custom/which-key-next-page)
+    ("\uF0EC" "换" "切换缓冲区" custom/mode-line-switch-buffer)
+    ("\uF00D" "×" "关闭当前 buffer 及其窗口" kill-buffer-and-window))
+  "右端按钮表：(NF 字形 tty 回退 帮助 命令)，从左到右。")
+
+(defun custom/mode-line--button (spec)
+  "按 SPEC（字形 回退 帮助 命令）构造单颗按钮。"
+  (pcase-let ((`(,glyph ,fallback ,help ,command) spec))
+    (propertize
+     (format " %s" (custom/glyph glyph fallback))
+     'local-map (make-mode-line-mouse-map 'mouse-1 command)
+     'mouse-face 'highlight
+     'help-echo help)))
+
+(defun custom/mode-line--buttons ()
+  "右端按钮组串。"
+  (mapconcat #'custom/mode-line--button custom/mode-line--right-buttons nil))
+
+(defun custom/mode-line--mode-name ()
+  "mode-name，超 12 列截断（窄屏防挤出右端按钮）。"
+  (truncate-string-to-width (format-mode-line mode-name)
+                            12 nil nil "…"))
+
+;; 左段：修改标记 mode-name 百分比；右端按钮组从左到右：
+;; 寻 导航、中 回中、» 翻页、换 切缓冲区、× 关闭。
+;; `mode-line-format-right-align' 须裸符号（format-mode-line 按变量
+;; 处理）；NF 字形宽度已由 init-basis 的 char-width-table 置 2，对齐
+;; 计量与实渲一致。
 (setq-default mode-line-format
               '("%e"
                 (:eval (if (buffer-modified-p) "●" "·"))
                 " "
-                mode-name
+                (:eval (custom/mode-line--mode-name))
                 "  "
                 (:eval (custom/mode-line--percent))
                 mode-line-format-right-align
-                (:eval (custom/mode-line--nav-button))
-                (:eval (custom/mode-line--recenter-button))
-                (:eval (custom/mode-line--which-key-next-button))
-                (:eval (custom/mode-line--switch-button))
-                (:eval (custom/mode-line--close-button))))
+                (:eval (custom/mode-line--buttons))))
 
 ;; ─── 编辑行为（自桌面配置移植）───────────────────────────────────────
 ;; CJK 按字符类别折行（Emacs 29+ 内置）：中文段落无空格断点也能正常折行
