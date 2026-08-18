@@ -196,19 +196,19 @@
       (insert
        (format
         "window: %d 列 / %d px   frame-char-width: %d px\n\
+fringe 左右(px): %S\n\
 string-pixel-width: a=%d 中=%d ·=%d ●=%d F002=%d F00D=%d\n\
 string-width: F002=%S F00D=%S ·=%S ●=%S\n\
-fringe: %S  scrollbar: %S\n\
 右组串: %S\n\
 右组串宽(列): %S\n\
 mode-line 渲染串宽(列): %S"
         (window-total-width) (window-pixel-width) (frame-char-width)
+        (butlast (window-fringes) 3)
         (string-pixel-width "a") (string-pixel-width "中")
         (string-pixel-width "·") (string-pixel-width "●")
         (string-pixel-width "\uF002") (string-pixel-width "\uF00D")
         (string-width "\uF002") (string-width "\uF00D")
         (string-width "·") (string-width "●")
-        (fringe-columns 'right) (window-scroll-bar-columns)
         (custom/mode-line--buttons)
         (string-width (custom/mode-line--buttons))
         (string-width (format-mode-line mode-line-format))))
