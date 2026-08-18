@@ -121,7 +121,7 @@
 
 (defun custom/which-key--page-button (label command sym)
   "弹窗翻页按钮文本（[] 胶囊风格，与 dashboard 一致）。
-SYM（'prev/'next）作 'wk-page-button 属性标记，供前缀序列路径的
+SYM（prev/next）作 wk-page-button 属性标记，供前缀序列路径的
 `custom/which-key--paging-tap' 按落点分发；顶层 mouse/touchscreen
 绑定覆盖无前缀场景。"
   (concat
@@ -141,9 +141,11 @@ SYM（'prev/'next）作 'wk-page-button 属性标记，供前缀序列路径的
 ;; which-key 弹窗必然处于前缀键等待中，此时 tap 事件以「前缀+事件」
 ;; 组合序列查找（如 "C-c <mouse-2>"），read-key-sequence 对带前缀的
 ;; mouse/touch 事件不查 text-property 键图（实测），按钮顶层绑定不
-;; 命中。给 paging 前缀 × tap 事件的组合序列全局绑定分发器，按落点
-;; 的 'wk-page-button 属性决定翻页方向；落点不在按钮上则静默（覆盖
-;; 的本是 undefined 报错场景）。
+;; 命中。绑定挂在 which-key 自己的 popup transient map（查找优先级
+;; 高于全局，同样命中前缀组合；且它是临时键图，不会像绑 global-map
+;; 那样被 which-key 当作 C-x 子命令列出致渲染崩溃）：paging 前缀 ×
+;; tap 事件的组合序列绑分发器，按落点 wk-page-button 属性翻页，落点
+;; 不在按钮上则静默（覆盖的本是 undefined 报错场景）。
 
 (defun custom/which-key--paging-tap (event)
   "按 EVENT 落点分发 which-key 翻页。"
@@ -156,11 +158,18 @@ SYM（'prev/'next）作 'wk-page-button 属性标记，供前缀序列路径的
         ('next (which-key-show-next-page-cycle))
         ('prev (which-key-show-previous-page-cycle))))))
 
-(dolist (pfx '("C-x" "C-c" "C-h" "M-s" "M-g"))
-  (dolist (ev '(mouse-1 mouse-2 touchscreen-begin))
-    (define-key global-map
-                (vconcat (kbd pfx) (vector ev))
-                #'custom/which-key--paging-tap)))
+(defun custom/which-key--popup-map-with-tap (orig)
+  "向 popup map 追加前缀×tap 组合序列的翻页分发绑定。"
+  (let ((map (funcall orig)))
+    (when (keymapp map)
+      (dolist (pfx '("C-x" "C-c" "C-h" "M-s" "M-g"))
+        (dolist (ev '(mouse-1 mouse-2 touchscreen-begin))
+          (define-key map (vconcat (kbd pfx) (vector ev))
+                      #'custom/which-key--paging-tap))))
+    map))
+
+(advice-add 'which-key--get-popup-map :around
+            #'custom/which-key--popup-map-with-tap)
 
 (defun custom/which-key--insert-buttons-into-buffer ()
   "向 which-key buffer 末尾追加居中翻页按钮行（不动窗口）。"
