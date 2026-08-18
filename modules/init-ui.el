@@ -177,12 +177,17 @@
      'mouse-face 'highlight
      'help-echo help)))
 
+(defcustom custom/mode-line-edge-padding 1
+  "mode-line 左右两侧边距（列）。"
+  :type 'integer
+  :group 'emacs-mobile)
+
 (defun custom/mode-line--buttons ()
   "右端按钮组串。"
   (mapconcat #'custom/mode-line--button custom/mode-line--right-buttons nil))
 
 (defun custom/mode-line--right-space ()
-  "右端按钮组前的弹性空格：对齐到文本区右缘。
+  "右端按钮组前的弹性空格：对齐文本区右缘再内缩左右边距列。
 官方 `mode-line-format-right-align' 以 right-fringe（fringe 外缘）为
 参照，右 fringe 非零的环境里按钮组整体多移一个 fringe 宽，尾钮单元
 越出文本区右缘、落在 fringe 上的 tap 不派发（真机 × 右侧约 1/4 不可
@@ -191,7 +196,8 @@ advance 一致，NF 校验模式已同步置 2）。"
   (propertize
    " " 'display
    `(space . (:align-to
-              (- right ,(string-width (custom/mode-line--buttons)))))))
+              (- right ,(+ (string-width (custom/mode-line--buttons))
+                           custom/mode-line-edge-padding))))))
 
 (defun custom/mode-line--mode-name ()
   "mode-name，超 12 列截断（窄屏防挤出右端按钮）。"
@@ -231,6 +237,7 @@ mode-line 渲染串宽(列): %S"
 ;; 寻 导航、中 回中、» 翻页、换 切缓冲区、× 关闭
 (setq-default mode-line-format
               '("%e"
+                (:eval (make-string custom/mode-line-edge-padding ?\s))
                 (:eval (if (buffer-modified-p) "●" "·"))
                 " "
                 (:eval (custom/mode-line--mode-name))
