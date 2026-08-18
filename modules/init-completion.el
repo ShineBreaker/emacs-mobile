@@ -120,12 +120,16 @@
 (declare-function which-key--pages-pages "which-key")
 
 (defun custom/which-key--page-button (label command)
-  "弹窗翻页按钮文本（[] 胶囊风格，与 dashboard 一致）。"
+  "弹窗翻页按钮文本（[] 胶囊风格，与 dashboard 一致）。
+绑 mouse-1 与 mouse-2 双通道：mode-line 区 tap 合成 mouse-1，
+buffer 文本区 tap 合成 mouse-2（后者不绑则落入前缀键序列报
+\"C-c <mouse-2> is undefined\"）。"
   (concat
    (propertize "[" 'face 'shadow)
    (propertize (format " %s " label)
                'keymap (let ((map (make-sparse-keymap)))
                          (define-key map [mouse-1] command)
+                         (define-key map [mouse-2] command)
                          map)
                'mouse-face 'highlight
                'follow-link t)
