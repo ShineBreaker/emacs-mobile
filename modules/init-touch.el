@@ -213,7 +213,7 @@
          (dired-revert))))))
 
 (defun custom/dired--op-button (glyph fallback help command)
-  "dired mode-line 操作按钮。"
+  "dired mode-line 操作按钮（四钮并排，间距 1 列保持紧凑）。"
   (propertize
    (format " %s" (custom/glyph glyph fallback))
    'local-map (make-mode-line-mouse-map 'mouse-1 command)

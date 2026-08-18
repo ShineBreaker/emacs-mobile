@@ -162,7 +162,6 @@
 (defconst custom/mode-line--right-buttons
   '(("\uF002" "寻" "文档内导航（org 大纲 / epub 章节 / 本页搜索）"
      custom/mode-line-navigate)
-    ("\uF037" "中" "当前行回中" recenter-top-bottom)
     ("\uF0A9" "»" "which-key 下一页" custom/which-key-next-page)
     ("\uF0EC" "换" "切换缓冲区" custom/mode-line-switch-buffer)
     ("\uF00D" "×" "关闭当前 buffer 及其窗口" kill-buffer-and-window))
@@ -172,7 +171,7 @@
   "按 SPEC（字形 回退 帮助 命令）构造单颗按钮。"
   (pcase-let ((`(,glyph ,fallback ,help ,command) spec))
     (propertize
-     (format " %s" (custom/glyph glyph fallback))
+     (format "  %s" (custom/glyph glyph fallback))
      'local-map (make-mode-line-mouse-map 'mouse-1 command)
      'mouse-face 'highlight
      'help-echo help)))
@@ -234,7 +233,7 @@ mode-line 渲染串宽(列): %S"
     (pop-to-buffer buf)))
 
 ;; 左段：修改标记 mode-name 百分比；右端按钮组从左到右：
-;; 寻 导航、中 回中、» 翻页、换 切缓冲区、× 关闭
+;; 寻 导航、» 翻页、换 切缓冲区、× 关闭
 (setq-default mode-line-format
               '("%e"
                 (:eval (make-string custom/mode-line-edge-padding ?\s))
