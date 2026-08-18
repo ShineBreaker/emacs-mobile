@@ -111,16 +111,70 @@
              (fboundp 'which-key-show-next-page-cycle))
     (which-key-show-next-page-cycle)))
 
+;; ─── 弹窗内翻页按钮（触屏无 C-h；tap 触发 text-property keymap） ──
+
+(defvar which-key--buffer nil)  ; which-key.el
+(defvar which-key--pages-obj nil)  ; which-key.el
+(declare-function which-key-show-next-page-cycle "which-key")
+(declare-function which-key-show-previous-page-cycle "which-key")
+(declare-function which-key--pages-pages "which-key")
+
+(defun custom/which-key--page-button (label command)
+  "弹窗翻页按钮文本（[] 胶囊风格，与 dashboard 一致）。"
+  (concat
+   (propertize "[" 'face 'shadow)
+   (propertize (format " %s " label)
+               'keymap (let ((map (make-sparse-keymap)))
+                         (define-key map [mouse-1] command)
+                         map)
+               'mouse-face 'highlight
+               'follow-link t)
+   (propertize "]" 'face 'shadow)))
+
+(defun custom/which-key--insert-buttons-into-buffer ()
+  "向 which-key buffer 末尾追加居中翻页按钮行（不动窗口）。"
+  (with-current-buffer which-key--buffer
+    (let* ((inhibit-read-only t)
+           (btns (concat (custom/which-key--page-button
+                          "上一页" #'which-key-show-previous-page-cycle)
+                         "  "
+                         (custom/which-key--page-button
+                          "下一页" #'which-key-show-next-page-cycle))))
+      (goto-char (point-max))
+      (insert "\n"
+              (make-string (max 0 (/ (- (frame-width) (string-width btns)) 2))
+                           ?\s)
+              btns))))
+
+(defun custom/which-key--popup-with-buttons (orig dim)
+  "多页时注入翻页按钮行并计入弹窗高度（fit 之前注入才可见）。"
+  (when (and which-key--pages-obj
+             (> (length (which-key--pages-pages which-key--pages-obj)) 1))
+    (custom/which-key--insert-buttons-into-buffer)
+    (setcar dim (1+ (car dim))))
+  (funcall orig dim))
+
+(advice-add 'which-key--show-popup :around
+            #'custom/which-key--popup-with-buttons)
+
 (use-package which-key
   :defer t
   :custom (which-key-idle-delay 0.6)
           ;; 底部弹窗（触屏视线近）
           (which-key-side-window-location 'bottom)
-          ;; 侧窗加高 + 描述压缩：窄屏一屏容纳更多条目，减少翻页
           (which-key-side-window-max-height 0.5)
-          (which-key-max-description-length 16)
-          ;; 多层前缀启用官方 paging：弹窗内 C-h n/p 翻页（mode-line
-          ;; 「»」按钮为触摸翻页入口，见 init-ui.el）
+          (which-key-min-display-lines 10)
+          ;; 窄屏布局：描述 20 列（40 列窗单列上限，28 会让列宽计算
+          ;; 出负数崩渲染），列内对齐
+          (which-key-max-description-length 20)
+          (which-key-min-column-description-width 16)
+          (which-key-add-column-padding 1)
+          ;; 一条目允许多条替换规则链式应用（前缀组名与叶子名都替换）
+          (which-key-allow-multiple-replacements t)
+          (which-key-sort-order #'which-key-prefix-then-key-order)
+          ;; 触屏无 C-h：关 C-h 分发（页脚键位提示随之消失），翻页走弹窗按钮
+          (which-key-use-C-h-commands nil)
+          ;; 多层前缀启用官方 paging（翻页按钮依赖其分页状态）
           (which-key-paging-prefixes '("C-x" "C-c" "C-h" "M-s" "M-g"))
   :init
   ;; 空闲才加载并开启：包加载与中文描述注册不占启动时间
