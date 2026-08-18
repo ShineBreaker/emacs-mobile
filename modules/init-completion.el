@@ -138,16 +138,16 @@ SYM（prev/next）作 wk-page-button 属性标记，供前缀序列路径的
    (propertize "]" 'face 'shadow)))
 
 ;; ─── 前缀序列路径的翻页兜底 ────────────────────────────────────────
-;; which-key 弹窗必然处于前缀键等待中，此时 tap 事件以「前缀+事件」
-;; 组合序列查找（如 "C-c <mouse-2>"），read-key-sequence 对带前缀的
-;; mouse/touch 事件不查 text-property 键图（实测），按钮顶层绑定不
-;; 命中。绑定挂在 which-key 自己的 popup transient map（查找优先级
-;; 高于全局，同样命中前缀组合；且它是临时键图，不会像绑 global-map
-;; 那样被 which-key 当作 C-x 子命令列出致渲染崩溃）：paging 前缀 ×
-;; tap 事件的组合序列绑分发器，按落点 wk-page-button 属性翻页，落点
-;; 不在按钮上则静默（覆盖的本是 undefined 报错场景）。
-;; 自动弹窗路径 `which-key--automatic-display' 为 t 时 orig 返回 nil
-;; （其 transient map 只服务手动 show-top-level 场景），须自建 map。
+;; which-key 弹窗必然处于前缀键等待中，tap 事件以「前缀+事件」组合
+;; 序列查找（如 "C-c <mouse-2>"）。GUI command loop 实测（端到端
+;; 事件注入 + undefined 插桩）：带前缀的 mouse 事件组合序列**不查
+;; text-property 键图、也不查 transient map**，只落 global/minor
+;; 层——故组合绑定必须挂 global-map 的前缀子树。渲染安全：
+;; which-key 内置 `which-key--ignore-non-evil-keys-regexp' 过滤
+;; mouse- 条目，mouse 组合不会出现在弹窗里（touchscreen-begin
+;; 不被过滤，故不绑 global；真机 tap 到达 command loop 实测即
+;; mouse-2）。查不到绑定时 pre-command-hook 先藏弹窗清页再报
+;; undefined，事后拦截已太晚，必须让查找命中。
 
 (defun custom/which-key--paging-tap (event)
   "按 EVENT 落点分发 which-key 翻页。"
@@ -163,18 +163,19 @@ SYM（prev/next）作 wk-page-button 属性标记，供前缀序列路径的
           ('next (which-key-show-next-page-cycle))
           ('prev (which-key-show-previous-page-cycle)))))))
 
-(defun custom/which-key--popup-map-with-tap (orig)
-  "向 popup map 追加前缀×tap 组合序列的翻页分发绑定。
-自动弹窗场景 orig 返回 nil，自建 map。"
-  (let ((map (or (funcall orig) (make-sparse-keymap))))
-    (dolist (pfx '("C-x" "C-c" "C-h" "M-s" "M-g"))
-      (dolist (ev '(mouse-1 mouse-2 touchscreen-begin))
-        (define-key map (vconcat (kbd pfx) (vector ev))
-                    #'custom/which-key--paging-tap)))
-    map))
+;; paging 前缀 × mouse 事件组合序列绑分发器（弹窗按钮 tap 即命中；
+;; 落点不在按钮上则静默，覆盖的本是 undefined 报错场景）
+(dolist (pfx '("C-x" "C-c" "C-h" "M-s" "M-g"))
+  (dolist (ev '(mouse-1 mouse-2))
+    (define-key global-map (vconcat (kbd pfx) (vector ev))
+                #'custom/which-key--paging-tap)))
 
-(advice-add 'which-key--get-popup-map :around
-            #'custom/which-key--popup-map-with-tap)
+;; mode 挂的 pre-command-hook `which-key--hide-popup' 对翻页白名单
+;; （`which-key--paging-functions'）外的命令先藏弹窗并清 pages-obj，
+;; 分发器随后执行时已无页可翻（真机 tap 翻页即弹窗消失根因）；
+;; idle timer 路径的隐藏检查用同一白名单，一并豁免。
+(with-eval-after-load 'which-key
+  (add-to-list 'which-key--paging-functions #'custom/which-key--paging-tap))
 
 (defun custom/which-key--insert-buttons-into-buffer ()
   "向 which-key buffer 末尾追加居中翻页按钮行（不动窗口）。"
