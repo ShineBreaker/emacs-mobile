@@ -237,7 +237,7 @@
   ;; mode-name 压缩（默认 \"Dired by name\" 太占宽，窄屏挤出按钮）
   (setq-local mode-name "Dired")
   (let* ((fmt (default-value 'mode-line-format))
-         (pos (seq-position fmt 'mode-line-format-right-align)))
+         (pos (seq-position fmt '(:eval (custom/mode-line--right-space)))))
     (when pos
       (setq-local mode-line-format
                   (append (seq-take fmt pos)

@@ -181,6 +181,18 @@
   "右端按钮组串。"
   (mapconcat #'custom/mode-line--button custom/mode-line--right-buttons nil))
 
+(defun custom/mode-line--right-space ()
+  "右端按钮组前的弹性空格：对齐到文本区右缘。
+官方 `mode-line-format-right-align' 以 right-fringe（fringe 外缘）为
+参照，右 fringe 非零的环境里按钮组整体多移一个 fringe 宽，尾钮单元
+越出文本区右缘、落在 fringe 上的 tap 不派发（真机 × 右侧约 1/4 不可
+点）；改以 `right'（文本区右缘）为参照，宽度按当前宽度表（GUI 与
+advance 一致，NF 校验模式已同步置 2）。"
+  (propertize
+   " " 'display
+   `(space . (:align-to
+              (- right ,(string-width (custom/mode-line--buttons)))))))
+
 (defun custom/mode-line--mode-name ()
   "mode-name，超 12 列截断（窄屏防挤出右端按钮）。"
   (truncate-string-to-width (format-mode-line mode-name)
@@ -216,10 +228,7 @@ mode-line 渲染串宽(列): %S"
     (pop-to-buffer buf)))
 
 ;; 左段：修改标记 mode-name 百分比；右端按钮组从左到右：
-;; 寻 导航、中 回中、» 翻页、换 切缓冲区、× 关闭。
-;; `mode-line-format-right-align' 须裸符号（format-mode-line 按变量
-;; 处理）；NF 字形宽度已由 init-basis 的 char-width-table 置 2，对齐
-;; 计量与实渲一致。
+;; 寻 导航、中 回中、» 翻页、换 切缓冲区、× 关闭
 (setq-default mode-line-format
               '("%e"
                 (:eval (if (buffer-modified-p) "●" "·"))
@@ -227,7 +236,7 @@ mode-line 渲染串宽(列): %S"
                 (:eval (custom/mode-line--mode-name))
                 "  "
                 (:eval (custom/mode-line--percent))
-                mode-line-format-right-align
+                (:eval (custom/mode-line--right-space))
                 (:eval (custom/mode-line--buttons))))
 
 ;; ─── 编辑行为（自桌面配置移植）───────────────────────────────────────
