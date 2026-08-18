@@ -146,6 +146,8 @@ SYM（prev/next）作 wk-page-button 属性标记，供前缀序列路径的
 ;; 那样被 which-key 当作 C-x 子命令列出致渲染崩溃）：paging 前缀 ×
 ;; tap 事件的组合序列绑分发器，按落点 wk-page-button 属性翻页，落点
 ;; 不在按钮上则静默（覆盖的本是 undefined 报错场景）。
+;; 自动弹窗路径 `which-key--automatic-display' 为 t 时 orig 返回 nil
+;; （其 transient map 只服务手动 show-top-level 场景），须自建 map。
 
 (defun custom/which-key--paging-tap (event)
   "按 EVENT 落点分发 which-key 翻页。"
@@ -154,18 +156,21 @@ SYM（prev/next）作 wk-page-button 属性标记，供前缀序列路径的
          (pt (posn-point start)))
     (when (and (integerp pt) (> pt 0)
                (eq (window-buffer (posn-window start)) which-key--buffer))
-      (pcase (get-char-property pt 'wk-page-button)
-        ('next (which-key-show-next-page-cycle))
-        ('prev (which-key-show-previous-page-cycle))))))
+      ;; 属性在落点 buffer 上，查询须显式切换（不依赖 command-loop
+      ;; 派发 mouse 事件时的自动选窗）
+      (with-current-buffer which-key--buffer
+        (pcase (get-char-property pt 'wk-page-button)
+          ('next (which-key-show-next-page-cycle))
+          ('prev (which-key-show-previous-page-cycle)))))))
 
 (defun custom/which-key--popup-map-with-tap (orig)
-  "向 popup map 追加前缀×tap 组合序列的翻页分发绑定。"
-  (let ((map (funcall orig)))
-    (when (keymapp map)
-      (dolist (pfx '("C-x" "C-c" "C-h" "M-s" "M-g"))
-        (dolist (ev '(mouse-1 mouse-2 touchscreen-begin))
-          (define-key map (vconcat (kbd pfx) (vector ev))
-                      #'custom/which-key--paging-tap))))
+  "向 popup map 追加前缀×tap 组合序列的翻页分发绑定。
+自动弹窗场景 orig 返回 nil，自建 map。"
+  (let ((map (or (funcall orig) (make-sparse-keymap))))
+    (dolist (pfx '("C-x" "C-c" "C-h" "M-s" "M-g"))
+      (dolist (ev '(mouse-1 mouse-2 touchscreen-begin))
+        (define-key map (vconcat (kbd pfx) (vector ev))
+                    #'custom/which-key--paging-tap)))
     map))
 
 (advice-add 'which-key--get-popup-map :around
