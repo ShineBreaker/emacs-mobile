@@ -119,31 +119,58 @@
 (declare-function which-key-show-previous-page-cycle "which-key")
 (declare-function which-key--pages-pages "which-key")
 
-(defun custom/which-key--page-button (label command)
+(defun custom/which-key--page-button (label command sym)
   "弹窗翻页按钮文本（[] 胶囊风格，与 dashboard 一致）。
-绑 mouse-1 与 mouse-2 双通道：mode-line 区 tap 合成 mouse-1，
-buffer 文本区 tap 合成 mouse-2（后者不绑则落入前缀键序列报
-\"C-c <mouse-2> is undefined\"）。"
+SYM（'prev/'next）作 'wk-page-button 属性标记，供前缀序列路径的
+`custom/which-key--paging-tap' 按落点分发；顶层 mouse/touchscreen
+绑定覆盖无前缀场景。"
   (concat
    (propertize "[" 'face 'shadow)
    (propertize (format " %s " label)
                'keymap (let ((map (make-sparse-keymap)))
                          (define-key map [mouse-1] command)
                          (define-key map [mouse-2] command)
+                         (define-key map [touchscreen-begin] command)
                          map)
+               'wk-page-button sym
                'mouse-face 'highlight
                'follow-link t)
    (propertize "]" 'face 'shadow)))
+
+;; ─── 前缀序列路径的翻页兜底 ────────────────────────────────────────
+;; which-key 弹窗必然处于前缀键等待中，此时 tap 事件以「前缀+事件」
+;; 组合序列查找（如 "C-c <mouse-2>"），read-key-sequence 对带前缀的
+;; mouse/touch 事件不查 text-property 键图（实测），按钮顶层绑定不
+;; 命中。给 paging 前缀 × tap 事件的组合序列全局绑定分发器，按落点
+;; 的 'wk-page-button 属性决定翻页方向；落点不在按钮上则静默（覆盖
+;; 的本是 undefined 报错场景）。
+
+(defun custom/which-key--paging-tap (event)
+  "按 EVENT 落点分发 which-key 翻页。"
+  (interactive "e")
+  (let* ((start (event-start event))
+         (pt (posn-point start)))
+    (when (and (integerp pt) (> pt 0)
+               (eq (window-buffer (posn-window start)) which-key--buffer))
+      (pcase (get-char-property pt 'wk-page-button)
+        ('next (which-key-show-next-page-cycle))
+        ('prev (which-key-show-previous-page-cycle))))))
+
+(dolist (pfx '("C-x" "C-c" "C-h" "M-s" "M-g"))
+  (dolist (ev '(mouse-1 mouse-2 touchscreen-begin))
+    (define-key global-map
+                (vconcat (kbd pfx) (vector ev))
+                #'custom/which-key--paging-tap)))
 
 (defun custom/which-key--insert-buttons-into-buffer ()
   "向 which-key buffer 末尾追加居中翻页按钮行（不动窗口）。"
   (with-current-buffer which-key--buffer
     (let* ((inhibit-read-only t)
            (btns (concat (custom/which-key--page-button
-                          "上一页" #'which-key-show-previous-page-cycle)
+                          "上一页" #'which-key-show-previous-page-cycle 'prev)
                          "  "
                          (custom/which-key--page-button
-                          "下一页" #'which-key-show-next-page-cycle))))
+                          "下一页" #'which-key-show-next-page-cycle 'next))))
       (goto-char (point-max))
       (insert "\n"
               (make-string (max 0 (/ (- (frame-width) (string-width btns)) 2))
