@@ -34,6 +34,7 @@
   :group 'emacs-mobile)
 
 (defvar custom/color-scheme-current-mode)  ; 定义在 init-ui
+(defvar image-load-path)  ; image.el，未加载时 void，需先声明避免启动崩
 (declare-function custom/color-scheme-apply-theme "init-ui")
 
 (defun custom/bar--icon-color ()
@@ -75,7 +76,8 @@
       ;; 按钮过小是 Android 已知缺陷（margins 不随密度缩放），边距作触控 padding 单独调
       (setq tool-bar-button-margin custom/bar-button-margin)
 
-      ;; image-load-path 须在 find-image 调用前就位
+      ;; image-load-path 须在 find-image 调用前就位，early-init 禁了 package.el 时 image 特性可能未加载
+      (require 'image)
       (add-to-list 'image-load-path
                    (expand-file-name "data/icons" user-emacs-directory))
 
