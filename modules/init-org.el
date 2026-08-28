@@ -10,6 +10,9 @@
 
 ;;; Code:
 
+(declare-function org-roam-file-p "org-roam")
+(declare-function org-roam-db-update-file "org-roam")
+
 (defun custom/org--ensure-directories ()
   "确保 Org 相关目录存在。"
   (dolist (dir (list custom:org-directory
@@ -30,7 +33,7 @@
 
 (use-package org
   :defer t
-  ;; Emacs 30.2 内置 org 9.7 满足全部依赖（org-roam 要求 9.6+），禁用
+  ;; Emacs 31.1 内置 org 9.8 满足全部依赖（org-roam 要求 9.6+），禁用
   ;; straight 安装 git 版 org——其 build 缺 org-loaddefs.el 且与内置版
   ;; 并存时版本错乱（Org version mismatch）
   :straight nil
@@ -157,6 +160,12 @@
 ;; CLI 后端仅存于 emacsql 3.x），走 Termux 的 sqlite3（缺失则跳过）。
 ;; 已知代价：每查询 spawn 进程（官方标注 BROKEN，#1927 缓存 bug）。
 
+(defun custom/org-roam-update-on-save ()
+  "保存 org-roam 文件后增量更新索引。"
+  (when (org-roam-file-p (buffer-file-name))
+    (with-demoted-errors "org-roam 索引更新失败: %S"
+      (org-roam-db-update-file))))
+
 (let ((sqlite3 (executable-find "sqlite3")))
   (if (not sqlite3)
       (display-warning 'init-org
@@ -192,11 +201,6 @@
       ;; org-roam-db-sync 在真机 FUSE 共享存储上分钟级阻塞主线程（db
       ;; 被锁时每条查询还要各等满超时），只取其增量部分——保存后更新
       ;; 该文件索引；全量重建手动 M-x org-roam-db-sync（有进度可预期）
-      (defun custom/org-roam-update-on-save ()
-        "保存 org-roam 文件后增量更新索引。"
-        (when (org-roam-file-p (buffer-file-name))
-          (with-demoted-errors "org-roam 索引更新失败: %S"
-            (org-roam-db-update-file))))
       (add-hook 'after-save-hook #'custom/org-roam-update-on-save))))
 
 ;; ─── org-appear + org-modern（org-appear 纯 face 变换，Android 字体可用；
