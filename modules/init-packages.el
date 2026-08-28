@@ -70,17 +70,16 @@ emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
 ;; · emacsql-sqlite：org-roam.el 顶层 require（仅加载定义，C 二进制不
 ;;   被编译/使用）；与 emacsql 同一仓库 → 共享上面的 pin。
 ;; · emacsql-sqlite3：sqlite3 CLI 后端（cireu 维护）。
-;; · org：强制走内置（Emacs 30.2 自带 9.7，满足 org-roam 9.4+）。
+;; · org：强制走内置（Emacs 31.1 内置 9.8，满足 org-roam 9.4+）。
 ;;   org-elpa recipe 源为 org 提供 git mirror recipe，org-roam 依赖链
 ;;   解析时会把 git 版 org 装进 load-path 首位（与内置并存撞版本），
 ;;   其 build 不含 org-loaddefs.el（make 产物），每次加载 org 警告并
 ;;   sit-for 两次；use-package 的 :straight nil 拦不住依赖层，须在此
 ;;   覆盖 recipe。
 ;; · magit-section：显式锁 files 防镜像 recipe 漂移（缓存曾混入完整
-;;   magit，加载后弹 Emergency：内置 transient 旧于 magit 要求）。
-;;   magit 仓库源码在 lisp/ 子目录（files 误写根路径会静默 build 出
-;;   空目录，straight 信任已存在目录不再重建）。已污染的缓存须删除
-;;   重建（README §4）。
+;;   magit）。magit 仓库源码在 lisp/ 子目录（files 误写根路径会静默
+;;   build 出空目录，straight 信任已存在目录不再重建）。已污染的缓存
+;;   须删除重建（README §4）。
 (defvar straight-recipe-overrides)
 ;; 键须为 profile 名（默认 profile 为 nil，非 :all）
 (setq straight-recipe-overrides

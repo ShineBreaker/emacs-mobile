@@ -5,9 +5,9 @@
 
 ;;; Commentary:
 ;; 持久化状态统一落 custom:var-directory（~/.local/state/emacs，目录
-;; 由 init-basis 定义）。recentf 落盘走显式保存点（失焦保存与 tool-bar
-;; 保存按钮，见 init-ui.el）：Android 后台被杀时 kill-emacs-hook 不
-;; 执行，定时器在 30.2 亦不存在。
+;; 由 init-basis 定义）。Android 后台被杀时 kill-emacs-hook 不执行：
+;; recentf 除显式保存点（失焦/保存按钮，见 init-ui.el）外叠加内置
+;; 自动保存定时器（31+）兜底，saveplace 同用定时器。
 
 ;;; Code:
 
@@ -18,7 +18,8 @@
   (recentf-mode)
   :custom
   (recentf-save-file (expand-file-name "recentf" custom:var-directory))
-  (recentf-max-saved-items 100))
+  (recentf-max-saved-items 100)
+  (recentf-autosave-interval 300))
 
 (use-package savehist
   :init
@@ -30,7 +31,8 @@
   :init
   (save-place-mode)
   :custom
-  (save-place-file (expand-file-name "places" custom:var-directory)))
+  (save-place-file (expand-file-name "places" custom:var-directory))
+  (save-place-autosave-interval 300))
 
 ;; 从其他 app 打开文件 / org-protocol 链接由 emacsclient 转交本会话，
 ;; 要求 server 在跑；socket 落在 $TMPDIR/emacs<uid>，emacsclient 同规则查找

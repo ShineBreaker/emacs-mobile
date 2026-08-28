@@ -13,6 +13,13 @@
 (with-eval-after-load 'browse-url
   (setq browse-url-browser-function 'eww-browse-url))
 
+(defvar shr-sliced-image-height)  ; 内置 shr.el
+
+;; 高图按窗高比例切片（0.7 = 超七成即切）：滚动逐片走过不跳整图，
+;; eww/nov 共用 shr 渲染
+(with-eval-after-load 'shr
+  (setq shr-sliced-image-height 0.7))
+
 (use-package nov
   :mode ("\\.epub\\'" . nov-mode))
 

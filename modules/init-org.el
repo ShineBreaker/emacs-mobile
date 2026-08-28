@@ -169,10 +169,7 @@
     ;; connector 是运行时选择，org-roam 声明依赖里没有 emacsql-sqlite3，
     ;; 须显式安装
     (use-package emacsql-sqlite3)
-    ;; magit-section（org-roam 依赖，magit 仓库 HEAD）require transient
-    ;; >= 0.13，Emacs 30.2 内置旧版会弹 Emergency，装 GNU ELPA stable
-    ;; 版进 load-path 前部覆盖
-    (use-package transient)
+    ;; magit-section 的 transient 需求由内置满足（31.1 起 0.13.5）
     (use-package org-roam
       :defer t
       :commands (org-roam-node-find org-roam-node-insert org-roam-buffer-toggle)

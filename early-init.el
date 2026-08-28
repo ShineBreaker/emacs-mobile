@@ -63,6 +63,10 @@
     "启动前原 file-name-handler-alist（init-basis 复位用）。")
   (setq gc-cons-threshold most-positive-fixnum
         gc-cons-percentage 0.6
-        file-name-handler-alist nil))
+        file-name-handler-alist nil)
+
+  ;; load-path 查找缓存（31+）：require 跳过不含目标的目录，Android
+  ;; FUSE 上目录扫描昂贵收益放大；新目录（straight 新装包）现查现缓存
+  (setq load-path-filter-function #'load-path-filter-cache-directory-files))
 
 ;;; early-init.el ends here

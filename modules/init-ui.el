@@ -101,10 +101,21 @@
   (custom/color-scheme-apply-theme
    (if (eq custom/color-scheme-current-mode 'light) 'dark 'light)))
 
+(defvar toolkit-theme)  ; 内置 frame.el（31+）
+
+;; 系统深浅色跟随（31+，Android 在列）：系统主题应用时 Emacs 设
+;; `toolkit-theme' 为 'light/'dark 并跑此 hook；触发时机真机待确认，
+;; 不触发则退化为手动 toggle，无副作用
+(add-hook 'toolkit-theme-set-functions
+          (lambda (theme)
+            (custom/color-scheme-apply-theme
+             (if (eq theme 'dark) 'dark 'light))))
+
 (defun custom/color-scheme-init ()
-  "初始化：读状态文件 → 无则取默认 → 应用主题。"
+  "初始化：系统主题已报告则跟随，否则读状态文件 → 无则取默认。"
   (custom/color-scheme-apply-theme
-   (or (custom/color-scheme-read-state)
+   (or toolkit-theme
+       (custom/color-scheme-read-state)
        custom/color-scheme-default-mode)))
 
 (use-package ef-themes
