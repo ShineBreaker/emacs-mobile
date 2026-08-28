@@ -7,8 +7,8 @@
 ;; markdown-mode 单包承载编辑与查看，纯 elisp 无外部命令依赖
 ;; （pandoc 仅 HTML 导出才需要）：gfm-mode 编辑（代码块原生高亮），
 ;; gfm-view-mode 只读渲染查看（隐藏标记与 URL、列表符显圆点、
-;; 表格 overlay 渲染框线：列宽按窗口预算分配、cell 内折行，
-;; CJK 按实宽对齐）。
+;; 表格 overlay 渲染 ASCII 框线：列宽按窗口预算分配、cell 内
+;; 折行，CJK 按实宽对齐）。
 ;; 触屏入口走 mode-line 钮（dired 先例）：编辑态粗/斜/码包裹选区 +
 ;; 视图切换，查看态仅保留返回编辑钮。
 
@@ -76,21 +76,14 @@
 (defvar-local custom/markdown--table-last-width nil
   "上次表格渲染的窗宽预算，窗宽变化时重排。")
 
-(defun custom/markdown--disp-width (string)
-  "STRING 实显列宽：框线字符（East Asian Ambiguous，CJK 语言环境
-`char-width' 计 2、等宽字体实占 1 列）按 1 计，其余按 `char-width'。"
-  (let ((w 0) (i 0))
-    (while (< i (length string))
-      (let* ((ch (aref string i))
-             (cw (char-width ch)))
-        (setq w (+ w (if (and (= cw 2) (>= ch #x2500) (<= ch #x257f)) 1 cw))
-              i (1+ i))))
-    w))
-
 (defun custom/markdown--table-budget ()
-  "表格可用总列数：当前窗口宽，无窗口时退 60。"
+  "表格可用总列数：窗口宽扣除行号区（display-line-numbers 占
+body 一部分），无窗口时退 60。"
   (let ((w (get-buffer-window (current-buffer))))
-    (if w (window-body-width w) 60)))
+    (- (if w (window-body-width w) 60)
+       (if (and w display-line-numbers)
+           (line-number-display-width w)
+         0))))
 
 (defun custom/markdown--cell-plain (text)
   "剥 cell 行内强调标记与链接，供表格渲染显示。"
@@ -171,11 +164,12 @@
             (setcar (nthcdr mx ws) (+ (nth mx ws) rem)))
           ws)))))
 
-(defun custom/markdown--table-rule (widths left mid right)
-  "框线行：LEFT/MID/RIGHT 为角与三通字符，列宽取 WIDTHS。"
-  (concat left
-          (mapconcat (lambda (w) (make-string (+ w 2) ?─)) widths mid)
-          right))
+(defun custom/markdown--table-rule (widths)
+  "框线行。org 风格 ASCII：真机把 box-drawing 字符渲染为全角
+2 列，框线行与内容行宽度必然失衡，全 ASCII 才能实宽对齐。"
+  (concat "+"
+          (mapconcat (lambda (w) (make-string (+ w 2) ?-)) widths "+")
+          "+"))
 
 (defun custom/markdown--table-lines (cells widths aligns)
   "CELLS 为各 cell 的折行段列表，组装该逻辑行的框线行列表。
@@ -184,7 +178,7 @@
         out)
     (dotimes (row h)
       (push
-       (concat "│"
+       (concat "|"
                (mapconcat
                 (lambda (i)
                   (let* ((lines (nth i cells))
@@ -194,8 +188,8 @@
                                                   (nth i widths) align)
                             " ")))
                 (number-sequence 0 (1- (length widths)))
-                "│")
-               "│")
+                "|")
+               "|")
        out))
     (nreverse out)))
 
@@ -220,7 +214,7 @@
                                                            ""))))
                             rows))
              (budget (max (- (custom/markdown--table-budget)
-                             (* 3 ncol) 1)
+                             (* 3 ncol) 3)
                           (* ncol 4)))
              (widths (custom/markdown--table-widths
                       (mapcar (lambda (i)
@@ -238,7 +232,7 @@
                                            (nth i r) (nth i widths)) out))
                                   (nreverse out)))
                               cells))
-             (body (list (custom/markdown--table-rule widths "┌" "┬" "┐"))))
+             (body (list (custom/markdown--table-rule widths))))
         (let ((head (mapcar (lambda (lines)
                               (mapcar (lambda (s)
                                         (propertize s 'face 'bold))
@@ -246,14 +240,12 @@
                             (pop cells-w))))
           (setq body (append body
                              (custom/markdown--table-lines head widths aligns)
-                             (list (custom/markdown--table-rule
-                                    widths "├" "┼" "┤")))))
+                             (list (custom/markdown--table-rule widths)))))
         (dolist (r cells-w)
           (setq body (append body (custom/markdown--table-lines
                                    r widths aligns))))
         (setq body (append body
-                           (list (custom/markdown--table-rule
-                                  widths "└" "┴" "┘"))))
+                           (list (custom/markdown--table-rule widths))))
         (let ((ov (make-overlay beg end)))
           (overlay-put ov 'display (mapconcat #'identity body "\n"))
           (overlay-put ov 'custom-markdown-table t)
