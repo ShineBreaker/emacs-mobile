@@ -130,7 +130,7 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
   adb shell "settings put global settings_enable_monitor_phantom_procs false"
   ```
 - **init 出错无法启动（官方逃生通道）**：Android 无命令行参数，可用系统设置里 Emacs 的偏好设置界面以 `--quick`（跳过 init）或 `--debug-init` 启动（Android 7+：设置 → 应用 → Emacs 的应用信息页入口；旧系统：桌面「Emacs options」图标，因厂商而异）。若报转储文件（dump file）损坏，同一界面可删除 Emacs 文件目录中的转储文件修复；也可用任意文件管理器经 Emacs 导出的 documents provider 直接改名/删除 init 文件。
-- **从其他 app 打开文件没反应**：emacsclient 包装程序要求 Emacs 已启动服务器（未启动 server 的 Emacs 会在首次打开文件时被拉起，但若该会话没跑 `(server-start)`，之后的调用会失败）；org-protocol 链接同理。
+- **从其他 app 打开文件**：emacsclient 包装程序把文件转交给运行中的 Emacs 会话，要求 server 在跑（配置已在 Android 下默认启用，见 init-misc.el）；Emacs 未运行时首次打开会拉起完整启动，之后即可正常转交。
 - **底部栏切换闪动**：切换会重算 frame 布局，若真机上明显需迭代。
 
 ## 桌面开发期验证（沙箱，不污染真实配置）

@@ -11,6 +11,8 @@
 
 ;;; Code:
 
+(declare-function server-running-p "server")
+
 (use-package recentf
   :config
   (recentf-mode)
@@ -29,6 +31,12 @@
   (save-place-mode)
   :custom
   (save-place-file (expand-file-name "places" custom:var-directory)))
+
+;; 从其他 app 打开文件 / org-protocol 链接由 emacsclient 转交本会话，
+;; 要求 server 在跑；socket 落在 $TMPDIR/emacs<uid>，emacsclient 同规则查找
+(when custom:android-p
+  (require 'server)
+  (unless (server-running-p) (server-start)))
 
 (provide 'init-misc)
 ;;; init-misc.el ends here
