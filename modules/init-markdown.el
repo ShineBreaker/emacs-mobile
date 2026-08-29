@@ -6,9 +6,10 @@
 ;;; Commentary:
 ;; markdown-mode 单包承载编辑与查看，纯 elisp 无外部命令依赖
 ;; （pandoc 仅 HTML 导出才需要）：gfm-mode 编辑（代码块原生高亮），
-;; gfm-view-mode 只读渲染查看（隐藏标记与 URL、列表符显圆点、
-;; 表格 overlay 渲染 ASCII 框线：列宽按窗口预算分配、cell 内
-;; 折行，CJK 按实宽对齐）。
+;; 查看走专用展示 buffer（同窗切换）：gfm-view-mode 隐藏标记与
+;; URL、列表符显圆点，表格替换为 ASCII 框线真文本（列宽按窗口
+;; 预算分配、cell 内折行，CJK 按实宽对齐）。真文本而非 overlay：
+;; display overlay 钉死 window-start，触摸滚动在表格区推不动。
 ;; 触屏入口走 mode-line 钮（dired 先例）：编辑态粗/斜/码包裹选区 +
 ;; 视图切换，查看态仅保留返回编辑钮。
 
@@ -18,7 +19,6 @@
 (declare-function custom/touch-no-keyboard "init-touch")
 (declare-function gfm-mode "markdown-mode")
 (declare-function gfm-view-mode "markdown-mode")
-(declare-function markdown-code-block-at-point-p "markdown-mode")
 (declare-function markdown-table-at-point-p "markdown-mode")
 (declare-function markdown-table-begin "markdown-mode")
 (declare-function markdown-table-end "markdown-mode")
@@ -33,57 +33,7 @@
   ;; 代码块按语言原生高亮（= org-src-fontify-natively）
   (markdown-fontify-code-blocks-natively t))
 
-(defun custom/markdown-toggle-view ()
-  "gfm 编辑与只读渲染查看互切（同 buffer 切 major mode，不弹窗）。"
-  (interactive)
-  (if (derived-mode-p 'gfm-view-mode)
-      (gfm-mode)
-    (gfm-view-mode)))
-
-(defconst custom/markdown--edit-buttons
-  '(("\uF032" "粗" "粗体（无选区插入标记，有选区包裹）" markdown-insert-bold)
-    ("\uF033" "斜" "斜体（无选区插入标记，有选区包裹）" markdown-insert-italic)
-    ("\uF121" "码" "行内代码（无选区插入标记，有选区包裹）" markdown-insert-code)
-    ("\uF06E" "视" "切换到渲染查看" custom/markdown-toggle-view))
-  "编辑态 mode-line 钮表：(NF 字形 tty 回退 帮助 命令)。")
-
-(defconst custom/markdown--view-buttons
-  '(("\uF06E" "视" "返回编辑" custom/markdown-toggle-view))
-  "查看态 mode-line 钮表。")
-
-(defun custom/markdown--button (spec)
-  "按 SPEC（字形 回退 帮助 命令）构造单颗 mode-line 钮。
-间隔 2 列（右端钮组同款），四钮 + 右端钮组共存。"
-  (pcase-let ((`(,glyph ,fallback ,help ,command) spec))
-    (propertize
-     (format "  %s" (custom/glyph glyph fallback))
-     'local-map (make-mode-line-mouse-map 'mouse-1 command)
-     'mouse-face 'highlight
-     'help-echo help)))
-
-(defun custom/markdown--buttons ()
-  "当前态（编辑/查看）对应的 mode-line 钮串。"
-  (mapconcat
-   #'custom/markdown--button
-   (if (derived-mode-p 'gfm-view-mode)
-       custom/markdown--view-buttons
-     custom/markdown--edit-buttons)
-   nil))
-
-(defvar-local custom/markdown--table-overlays nil
-  "查看态表格渲染 overlay，切回编辑态整体撤销。")
-
-(defvar-local custom/markdown--table-last-width nil
-  "上次表格渲染的窗宽预算，窗宽变化时重排。")
-
-(defun custom/markdown--table-budget ()
-  "表格可用总列数：窗口宽扣除行号区（display-line-numbers 占
-body 一部分），无窗口时退 60。"
-  (let ((w (get-buffer-window (current-buffer))))
-    (- (if w (window-body-width w) 60)
-       (if (and w display-line-numbers)
-           (line-number-display-width w)
-         0))))
+;; ─── 表格渲染核心：纯文本进出，供展示 buffer 真文本替换 ──────────
 
 (defun custom/markdown--cell-plain (text)
   "剥 cell 行内强调标记与链接，供表格渲染显示。"
@@ -193,10 +143,9 @@ body 一部分），无窗口时退 60。"
        out))
     (nreverse out)))
 
-(defun custom/markdown--render-table (beg end)
-  "把 BEG..END 表格 overlay 渲染为框线表，不改源文本。
-列宽按窗口预算分配，超宽 cell 段内折行（真机窄屏框线不断）。"
-  (let* ((lines (split-string (buffer-substring beg end) "\n" t))
+(defun custom/markdown--table-render (text budget)
+  "表格源 TEXT 渲染为框线表文本（列宽总预算 BUDGET 列）。"
+  (let* ((lines (split-string text "\n" t))
          fmtspec rows)
     (dolist (line lines)
       (cond ((or (markdown--is-delimiter-row line)
@@ -204,7 +153,8 @@ body 一部分），无窗口时退 60。"
                  (string-match-p "\\`[-:][|:- \t]*\\'" line))
              (unless fmtspec (setq fmtspec line)))
             (t (push (markdown--table-line-to-columns line) rows))))
-    (when rows
+    (if (not rows)
+        text
       (setq rows (nreverse rows))
       (let* ((ncol (apply #'max (mapcar #'length rows)))
              (idxs (number-sequence 0 (1- ncol)))
@@ -213,9 +163,7 @@ body 一部分），无窗口时退 60。"
                                       (append r (make-list (- ncol (length r))
                                                            ""))))
                             rows))
-             (budget (max (- (custom/markdown--table-budget)
-                             (* 3 ncol) 3)
-                          (* ncol 4)))
+             (budget (max (- budget (* 3 ncol) 3) (* ncol 4)))
              (widths (custom/markdown--table-widths
                       (mapcar (lambda (i)
                                 (apply #'max 1 (mapcar
@@ -246,53 +194,154 @@ body 一部分），无窗口时退 60。"
                                    r widths aligns))))
         (setq body (append body
                            (list (custom/markdown--table-rule widths))))
-        (let ((ov (make-overlay beg end)))
-          (overlay-put ov 'display (mapconcat #'identity body "\n"))
-          (overlay-put ov 'custom-markdown-table t)
-          (push ov custom/markdown--table-overlays))))))
+        (mapconcat #'identity body "\n")))))
 
-(defun custom/markdown--tables-clear ()
-  "撤销查看态表格渲染 overlay。"
-  (mapc #'delete-overlay custom/markdown--table-overlays)
-  (setq custom/markdown--table-overlays nil
-        custom/markdown--table-last-width nil))
+(defun custom/markdown--table-budget (window)
+  "表格可用总列数：WINDOW 正文像素宽扣除行号区，按当前显示
+字体（感知 text-scale remap）折列；WINDOW nil 退 60。"
+  (if window
+      (floor (/ (- (window-body-width window t)
+                   (line-number-display-width window))
+                (window-font-width window)))
+    60))
 
-(defun custom/markdown--tables-render ()
-  "渲染 buffer 内全部表格（幂等，先清旧 overlay），记录窗宽预算。"
-  (custom/markdown--tables-clear)
-  (setq custom/markdown--table-last-width (custom/markdown--table-budget))
+(defun custom/markdown--tables-insert (budget)
+  "当前 buffer（原文态）内全部表格替换为框线真文本（BUDGET 列）。"
   (save-excursion
-    (save-restriction
-      (widen)
-      (goto-char (point-min))
-      (while (not (eobp))
-        (if (markdown-table-at-point-p)
-            (let ((beg (markdown-table-begin))
-                  (end (markdown-table-end)))
-              (custom/markdown--render-table beg end)
-              (goto-char end))
-          (forward-line 1))))))
+    (goto-char (point-min))
+    (while (not (eobp))
+      (if (markdown-table-at-point-p)
+          (let* ((beg (markdown-table-begin))
+                 (end (markdown-table-end))
+                 (text (buffer-substring-no-properties beg end))
+                 (rendered (custom/markdown--table-render text budget)))
+            (delete-region beg end)
+            (insert rendered "\n")
+            (forward-line 1))
+        (forward-line 1)))))
 
-(defun custom/markdown--tables-refit ()
-  "窗宽变化（旋转屏）时重排表格渲染。"
-  (when (and custom/markdown--table-overlays
-             (/= (custom/markdown--table-budget)
-                 (or custom/markdown--table-last-width 0)))
-    (custom/markdown--tables-render)))
+;; ─── 查看态：专用展示 buffer（真文本，触摸滚动平滑） ──────────────
+
+(defvar-local custom/markdown--src-buffer nil
+  "展示 buffer 的源编辑 buffer。")
+
+(defun custom/markdown--view-name (src)
+  "源 buffer SRC 对应的展示 buffer 名。"
+  (format "*视·%s*" (buffer-name src)))
+
+(defun custom/markdown--view-generate (src &optional keep-pos)
+  "从 SRC 生成（或重生成）展示 buffer 并返回之。
+KEEP-POS 为起始行文本时，生成后把该 buffer 的窗滚回此行。"
+  (let* ((win (or (get-buffer-window src t) (selected-window)))
+         (budget (custom/markdown--table-budget win))
+         (content (with-current-buffer src (buffer-string))))
+    (with-current-buffer (get-buffer-create (custom/markdown--view-name src))
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert content))
+      (gfm-view-mode)
+      ;; buffer-local 变量须在 major mode 之后设：mode 函数的
+      ;; kill-all-local-variables 会抹掉先设的局部绑定
+      (setq custom/markdown--src-buffer src
+            custom/markdown--view-last-budget budget)
+      ;; 先 fontify 完整原文（code-block 标记就位），代码块内的
+      ;; 假表格才不会被误当表格替换
+      (font-lock-ensure)
+      (let ((inhibit-read-only t))
+        (custom/markdown--tables-insert budget))
+      (when keep-pos
+        (goto-char (point-min))
+        (when (search-forward keep-pos nil t)
+          (beginning-of-line)
+          (when (get-buffer-window (current-buffer) t)
+            (set-window-start (get-buffer-window (current-buffer) t)
+                              (point)))))
+      (current-buffer))))
+
+(defun custom/markdown--view-refit ()
+  "展示 buffer 窗宽/字号变化后重新生成（保持滚动位置）。"
+  (let* ((win (get-buffer-window (current-buffer) t))
+         (anchor (and win
+                      (buffer-substring-no-properties
+                       (window-start win) (line-end-position)))))
+    (custom/markdown--view-generate custom/markdown--src-buffer anchor)))
+
+(defvar-local custom/markdown--view-last-budget nil
+  "展示 buffer 上次生成的列宽预算，变化时重生成。")
+
+(defun custom/markdown--view-refit-maybe ()
+  "窗宽或字号变化（预算改变）时重生成展示 buffer。"
+  (when custom/markdown--src-buffer
+    (let* ((budget (custom/markdown--table-budget
+                    (get-buffer-window (current-buffer) t)))
+           (changed (and budget custom/markdown--view-last-budget
+                         (/= budget custom/markdown--view-last-budget))))
+      (setq custom/markdown--view-last-budget budget)
+      (when changed
+        (custom/markdown--view-refit)))))
+
+(defun custom/markdown--view-refit-soon ()
+  "字号变化（text-scale）后延迟一拍重排：hook 先于 redisplay，
+列宽此时未更新。"
+  (when custom/markdown--src-buffer
+    (run-at-time 0 nil #'custom/markdown--view-refit-maybe)))
+
+(defun custom/markdown-toggle-view ()
+  "gfm 编辑与渲染查看互切（查看走专用展示 buffer，同窗切换）。"
+  (interactive)
+  (if custom/markdown--src-buffer
+      ;; 展示 buffer → 返回编辑
+      (if (buffer-live-p custom/markdown--src-buffer)
+          (switch-to-buffer custom/markdown--src-buffer)
+        (kill-current-buffer))
+    ;; 编辑 buffer → 生成展示 buffer 并同窗显示
+    (set-window-buffer
+     (selected-window)
+     (custom/markdown--view-generate (current-buffer)))))
+
+;; ─── mode-line 钮（dired 先例） ─────────────────────────────────────
+
+(defconst custom/markdown--edit-buttons
+  '(("\uF032" "粗" "粗体（无选区插入标记，有选区包裹）" markdown-insert-bold)
+    ("\uF033" "斜" "斜体（无选区插入标记，有选区包裹）" markdown-insert-italic)
+    ("\uF121" "码" "行内代码（无选区插入标记，有选区包裹）" markdown-insert-code)
+    ("\uF06E" "视" "切换到渲染查看" custom/markdown-toggle-view))
+  "编辑态 mode-line 钮表：(NF 字形 tty 回退 帮助 命令)。")
+
+(defconst custom/markdown--view-buttons
+  '(("\uF06E" "视" "返回编辑" custom/markdown-toggle-view))
+  "查看态 mode-line 钮表。")
+
+(defun custom/markdown--button (spec)
+  "按 SPEC（字形 回退 帮助 命令）构造单颗 mode-line 钮。
+间隔 2 列（右端钮组同款），四钮 + 右端钮组共存。"
+  (pcase-let ((`(,glyph ,fallback ,help ,command) spec))
+    (propertize
+     (format "  %s" (custom/glyph glyph fallback))
+     'local-map (make-mode-line-mouse-map 'mouse-1 command)
+     'mouse-face 'highlight
+     'help-echo help)))
+
+(defun custom/markdown--buttons ()
+  "当前态（编辑/查看）对应的 mode-line 钮串。"
+  (mapconcat
+   #'custom/markdown--button
+   (if (derived-mode-p 'gfm-view-mode)
+       custom/markdown--view-buttons
+     custom/markdown--edit-buttons)
+   nil))
 
 (defun custom/markdown--setup ()
   "gfm 系 buffer：右端钮组前插入 markdown 钮。
 gfm-view-mode 进入时父链 hook 亦经过此函数，按当前态选钮组。"
-  (if (derived-mode-p 'gfm-view-mode)
-      (progn
-        ;; 查看态是展示型 read-only buffer：tap 不唤键盘，表格渲染为
-        ;; 框线表（cell 内折行），窗宽变化重排
-        (custom/touch-no-keyboard)
-        (custom/markdown--tables-render)
-        (add-hook 'window-configuration-change-hook
-                  #'custom/markdown--tables-refit nil t))
-    ;; 编辑态（含从查看态切回）：撤销表格渲染
-    (custom/markdown--tables-clear))
+  (when (derived-mode-p 'gfm-view-mode)
+    ;; 查看态是展示型 read-only buffer：tap 不唤键盘；窗宽变化
+    ;;（旋转屏）/字号变化（text-scale）重排表格
+    (custom/touch-no-keyboard)
+    (add-hook 'window-configuration-change-hook
+              #'custom/markdown--view-refit-maybe nil t)
+    (add-hook 'text-scale-mode-hook
+              #'custom/markdown--view-refit-soon nil t))
   (let* ((fmt (default-value 'mode-line-format))
          (pos (seq-position fmt '(:eval (custom/mode-line--right-space)))))
     (when pos
