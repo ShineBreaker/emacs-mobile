@@ -335,9 +335,10 @@ KEEP-POS 为起始行文本时，生成后把该 buffer 的窗滚回此行。"
   "gfm 系 buffer：右端钮组前插入 markdown 钮。
 gfm-view-mode 进入时父链 hook 亦经过此函数，按当前态选钮组。"
   (when (derived-mode-p 'gfm-view-mode)
-    ;; 查看态是展示型 read-only buffer：tap 不唤键盘；窗宽变化
-    ;;（旋转屏）/字号变化（text-scale）重排表格
+    ;; 展示型 read-only buffer：tap 不唤键盘、不显行号（编辑区
+    ;; 行号挂 text-mode-hook，本 hook 在其后，关闭生效）
     (custom/touch-no-keyboard)
+    (display-line-numbers-mode -1)
     (add-hook 'window-configuration-change-hook
               #'custom/markdown--view-refit-maybe nil t)
     (add-hook 'text-scale-mode-hook
