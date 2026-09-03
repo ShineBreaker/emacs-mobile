@@ -15,6 +15,8 @@
 (declare-function dired-hide-details-mode "dired")
 (declare-function dired-mouse-find-file "dired")
 (declare-function custom/icon-asset "init-basis")
+(declare-function custom/mode-line--button "init-ui")
+(declare-function custom/mode-line--add-local-buttons "init-ui")
 (defvar dired-mode-map)
 
 ;; ─── 复制 / 剪切：有选区作用于选区，无选区作用于当前行 ─────────────
@@ -213,37 +215,28 @@
          (delete-file file)
          (dired-revert))))))
 
-(defun custom/dired--op-button (glyph fallback help command)
-  "dired mode-line 操作按钮（四钮并排，间距 1 列保持紧凑）。"
-  (propertize
-   (format " %s" (custom/glyph glyph fallback))
-   'local-map (make-mode-line-mouse-map 'mouse-1 command)
-   'mouse-face 'highlight
-   'help-echo help))
-
 (defun custom/dired--op-buttons ()
-  "dired 文件操作钮串：改名/删除/建文件/建目录。"
+  "dired 文件操作钮串：改名/删除/建文件/建目录。
+四钮并排共用统一构造入口，前导 1 列保持紧凑间距。"
   (concat
-   (custom/dired--op-button "\uF304" "改" "重命名（点选文件）"
-                            #'custom/dired-touch-rename)
-   (custom/dired--op-button "\uF1F8" "删" "删除（点选文件）"
-                            #'custom/dired-touch-delete)
-   (custom/dired--op-button "\uF15B" "文" "新建文件"
-                            #'dired-create-empty-file)
-   (custom/dired--op-button "\uF07B" "夹" "新建目录"
-                            #'dired-create-directory)))
+   (custom/mode-line--button (list "\uF304" "改" "重命名（点选文件）"
+                                   #'custom/dired-touch-rename)
+                             1)
+   (custom/mode-line--button (list "\uF1F8" "删" "删除（点选文件）"
+                                   #'custom/dired-touch-delete)
+                             1)
+   (custom/mode-line--button (list "\uF15B" "文" "新建文件"
+                                   #'dired-create-empty-file)
+                             1)
+   (custom/mode-line--button (list "\uF07B" "夹" "新建目录"
+                                   #'dired-create-directory)
+                             1)))
 
 (defun custom/dired-setup-mode-line ()
   "dired buffer：mode-line 右端钮组前插入文件操作钮。"
   ;; mode-name 压缩（默认 \"Dired by name\" 太占宽，窄屏挤出按钮）
   (setq-local mode-name "Dired")
-  (let* ((fmt (default-value 'mode-line-format))
-         (pos (seq-position fmt '(:eval (custom/mode-line--right-space)))))
-    (when pos
-      (setq-local mode-line-format
-                  (append (seq-take fmt pos)
-                          (list '(:eval (custom/dired--op-buttons)))
-                          (seq-drop fmt pos))))))
+  (custom/mode-line--add-local-buttons #'custom/dired--op-buttons))
 
 (add-hook 'dired-mode-hook #'custom/dired-setup-mode-line)
 

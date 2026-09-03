@@ -178,14 +178,24 @@
     ("\uF00D" "×" "关闭当前 buffer 及其窗口" kill-buffer-and-window))
   "右端按钮表：(NF 字形 tty 回退 帮助 命令)，从左到右。")
 
-(defun custom/mode-line--button (spec)
-  "按 SPEC（字形 回退 帮助 命令）构造单颗按钮。"
+(defun custom/mode-line--button (spec &optional pad)
+  "按 SPEC（字形 回退 帮助 命令）构造单颗按钮，前导 PAD 列空格（默认 2）。"
   (pcase-let ((`(,glyph ,fallback ,help ,command) spec))
     (propertize
-     (format "  %s" (custom/glyph glyph fallback))
+     (concat (make-string (or pad 2) ?\s) (custom/glyph glyph fallback))
      'local-map (make-mode-line-mouse-map 'mouse-1 command)
      'mouse-face 'highlight
      'help-echo help)))
+
+(defun custom/mode-line--add-local-buttons (fn)
+  "buffer-local：在右端钮组前插入 (:eval (FN)) 按钮串。"
+  (let* ((fmt (default-value 'mode-line-format))
+         (pos (seq-position fmt '(:eval (custom/mode-line--right-space)))))
+    (when pos
+      (setq-local mode-line-format
+                  (append (seq-take fmt pos)
+                          (list `(:eval (,fn)))
+                          (seq-drop fmt pos))))))
 
 (defcustom custom/mode-line-edge-padding 1
   "mode-line 左右两侧边距（列）。"

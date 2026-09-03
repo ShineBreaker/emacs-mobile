@@ -15,8 +15,9 @@
 
 ;;; Code:
 
-(declare-function custom/glyph "init-basis")
 (declare-function custom/touch-no-keyboard "init-touch")
+(declare-function custom/mode-line--button "init-ui")
+(declare-function custom/mode-line--add-local-buttons "init-ui")
 (declare-function gfm-mode "markdown-mode")
 (declare-function gfm-view-mode "markdown-mode")
 (declare-function markdown-table-at-point-p "markdown-mode")
@@ -312,20 +313,11 @@ KEEP-POS 为起始行文本时，生成后把该 buffer 的窗滚回此行。"
   '(("\uF06E" "视" "返回编辑" custom/markdown-toggle-view))
   "查看态 mode-line 钮表。")
 
-(defun custom/markdown--button (spec)
-  "按 SPEC（字形 回退 帮助 命令）构造单颗 mode-line 钮。
-间隔 2 列（右端钮组同款），四钮 + 右端钮组共存。"
-  (pcase-let ((`(,glyph ,fallback ,help ,command) spec))
-    (propertize
-     (format "  %s" (custom/glyph glyph fallback))
-     'local-map (make-mode-line-mouse-map 'mouse-1 command)
-     'mouse-face 'highlight
-     'help-echo help)))
-
 (defun custom/markdown--buttons ()
-  "当前态（编辑/查看）对应的 mode-line 钮串。"
+  "当前态（编辑/查看）对应的 mode-line 钮串。
+钮前导 2 列（右端钮组同款），四钮 + 右端钮组共存。"
   (mapconcat
-   #'custom/markdown--button
+   #'custom/mode-line--button
    (if (derived-mode-p 'gfm-view-mode)
        custom/markdown--view-buttons
      custom/markdown--edit-buttons)
@@ -343,13 +335,7 @@ gfm-view-mode 进入时父链 hook 亦经过此函数，按当前态选钮组。
               #'custom/markdown--view-refit-maybe nil t)
     (add-hook 'text-scale-mode-hook
               #'custom/markdown--view-refit-soon nil t))
-  (let* ((fmt (default-value 'mode-line-format))
-         (pos (seq-position fmt '(:eval (custom/mode-line--right-space)))))
-    (when pos
-      (setq-local mode-line-format
-                  (append (seq-take fmt pos)
-                          (list '(:eval (custom/markdown--buttons)))
-                          (seq-drop fmt pos))))))
+  (custom/mode-line--add-local-buttons #'custom/markdown--buttons))
 
 (add-hook 'gfm-mode-hook #'custom/markdown--setup)
 
