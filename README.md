@@ -102,6 +102,12 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 (executable-find "sqlite3")  ; org-roam 依赖（CLI 后端，非内置模块）
 ```
 
+行为回归（2026-09 改进轮）：
+
+- dashboard 点「搜」→ 默认检索目录应为 org 根而非共享存储根（后者全盘扫描分钟级）。
+- 编辑文件不保存直接切后台 ≥30s → 回来后文件已自动落盘（`auto-save-visited-mode`）。
+- `M-x custom/deploy-diagnose` → 「sqlite3 CLI 可用」「ripgrep (rg) 可用」行显示路径。
+
 ## 8. 常见问题
 
 - **安装报 `INSTALL_FAILED_SHARED_USER_INCOMPATIBLE`**：设备上有包占着 `com.termux` 共享用户且签名不同，最常见原因是 **Termux 插件残留**（Termux:API/Widget/Boot/Float 同样声明 `sharedUserId="com.termux"`，只卸主应用不够）。把 Termux 系应用全部卸载（必要时重启手机），再按先 Termux 后 Emacs 的顺序安装。

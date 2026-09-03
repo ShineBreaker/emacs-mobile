@@ -298,8 +298,10 @@ mode-line 渲染串宽(列): %S"
 ;; 待真机确认；不触发则该机制不生效，无副作用。
 
 ;; 访问文件定期真保存：失焦保存依赖的 after-focus-change-function 在
-;; Android 端口触发未证实，此为后台被杀丢数据的地板（间隔
-;; auto-save-visited-interval，默认 5s 定时器；直写访问文件，无 #file# 垃圾）
+;; Android 端口触发未证实，此为后台被杀丢数据的地板（直写访问文件，
+;; 无 #file# 垃圾；30s 定时器——FUSE 共享存储写频率保守化，代价是被杀
+;; 时最多丢 30s 编辑）
+(setq auto-save-visited-interval 30)
 (auto-save-visited-mode 1)
 
 (defconst custom:focus-save-idle-delay 1
