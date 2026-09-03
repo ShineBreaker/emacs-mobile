@@ -7,7 +7,7 @@
 Android 原生 Emacs 触屏配置（纯触屏、无键盘交互）＋ Termux APK 重签流水线。
 
 - 入口：`early-init.el`（启动优化）→ `init.el`（require 序列即模块依赖契约，见约束 1）
-- 模块：`modules/init-*.el`，basis / packages / ui / touch / bar / completion / org / dashboard / reading / misc
+- 模块：`modules/init-*.el`，basis / packages / ui / touch / bar / completion / org / markdown / dashboard / reading / misc
 - `justfile`：本地命令包装（`just emacs` 一键补全依赖、`just termux` 重签、`just icons` 图标、`just clean` 清理）
 - `data/icons/`：tool-bar 图标资产（SVG + PNG 兜底 + PBM 徽章，规格见约束 4）
 - `docs/`：部署/签名机制文档，改签名链路前先读 `docs/00-workflow.md`
@@ -42,5 +42,6 @@ Android 原生 Emacs 触屏配置（纯触屏、无键盘交互）＋ Termux APK
 
 ## 当前状态
 
-- C1（dashboard 拆层）、C2（图标管线）、C3（字形统一）、C4（声明显式化）、C5（颜色状态对称）均已落地。
-- 遗留观察项：early-init/init.el 部署转发双份镜像判定未收敛（工作正常，改动敏感）；justfile/scripts 与 Elisp 层概念重复（图标清单、字体、apk 重签）待评估；straight 的 use-package 集成注入 `eval-when-compile (load "org-roam")`，从源码编译 init-org 时会加载 org-roam（autosync 已剥离，仅包加载本身，秒级）。
+- C1（dashboard 拆层）、C2（图标管线）、C3（字形统一）、C4（声明显式化）、C5（颜色状态对称）均已落地；mode-line 按钮构造与插入已收敛至 init-ui 单一入口；全模块 byte-compile 零警告。
+- 已评估维持现状：early-init/init.el 部署转发双份镜像判定（注释互引、工作正常，部署链路改动敏感）；justfile 与 Elisp 层的图标/字体清单重复（生成侧与运行侧职责分离，跨语言单一数据源得不偿失）。
+- 已知可接受：straight 的 use-package 集成注入 `eval-when-compile (load "org-roam")`，从源码编译 init-org 时会加载 org-roam（autosync 已剥离，仅包加载本身，秒级）。
