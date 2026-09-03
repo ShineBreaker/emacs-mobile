@@ -240,6 +240,21 @@
             (string-trim (match-string 1)))))
       (file-name-nondirectory file)))
 
+(defun custom/dashboard--recent-roam-files (n)
+  "笔记目录按 mtime 最近的 N 个 org 文件。
+`directory-files-and-attributes' 一次 stat 全表（装饰排序，比较
+纯内存）——sort 比较器内逐对 file-attributes 在 FUSE 存储上是
+n·log(n) 次 stat 风暴。"
+  (mapcar #'car
+          (seq-take
+           (sort (directory-files-and-attributes
+                  custom:org-roam-directory t "\\.org\\'")
+                 (lambda (a b)
+                   (time-less-p
+                    (file-attribute-modification-time (cdr b))
+                    (file-attribute-modification-time (cdr a)))))
+           n)))
+
 (defun custom/dashboard--icon (code)
   "GUI 返回 NF 码点 CODE 的图标串，tty 返回空串。"
   (and (display-graphic-p)
@@ -291,13 +306,7 @@
   "笔记文件夹按修改时间最近的 LIST-SIZE 个文件。"
   (custom/dashboard-insert-section*
    "最近笔记" (custom/dashboard--heading-icon "\uF02E")
-   (seq-take
-    (sort (directory-files custom:org-roam-directory t "\\.org\\'")
-          (lambda (a b)
-            (time-less-p
-             (file-attribute-modification-time (file-attributes b))
-             (file-attribute-modification-time (file-attributes a)))))
-    list-size)
+   (custom/dashboard--recent-roam-files list-size)
    (lambda (file)
      (let ((icon (custom/dashboard--file-icon file)))
        (concat icon (unless (string-empty-p icon) " ")
