@@ -297,6 +297,11 @@ mode-line 渲染串宽(列): %S"
 ;; 内部 buffer。`after-focus-change-function' 在 Android 端口的触发
 ;; 待真机确认；不触发则该机制不生效，无副作用。
 
+;; 访问文件定期真保存：失焦保存依赖的 after-focus-change-function 在
+;; Android 端口触发未证实，此为后台被杀丢数据的地板（间隔
+;; auto-save-timeout，默认 30s idle；直写访问文件，无 #file# 垃圾）
+(auto-save-visited-mode 1)
+
 (defconst custom:focus-save-idle-delay 1
   "失焦后保存用户文件 buffer 前等待的空闲秒数。")
 

@@ -18,6 +18,7 @@
 (declare-function custom/mode-line--button "init-ui")
 (declare-function custom/mode-line--add-local-buttons "init-ui")
 (defvar dired-mode-map)
+(defvar custom:org-directory)
 
 ;; ─── 复制 / 剪切：有选区作用于选区，无选区作用于当前行 ─────────────
 ;; 无选区时整行操作更符合触屏直觉。
@@ -43,11 +44,21 @@
 ;; 搜索入口：rg 可用走 consult-ripgrep，缺失降级 consult-line
 (declare-function consult-ripgrep "consult")
 (declare-function consult-line "consult")
+(defun custom/touch-search--dir ()
+  "rg 检索的默认目录：非文件 buffer 从共享存储根继承时改落 org 根
+（全盘 rg 分钟级；dired 与文件 buffer 保持各自目录）。"
+  (if (and (not buffer-file-name)
+           (not (derived-mode-p 'dired-mode))
+           (equal default-directory custom/touch-storage-root))
+      custom:org-directory
+    default-directory))
+
 (defun custom/touch-search ()
-  "搜索。rg 可用时全文检索，否则检索当前缓冲区。"
+  "搜索。rg 可用时全文检索（非文件 buffer 落 org 根），否则检索当前缓冲区。"
   (interactive)
   (if (executable-find "rg")
-      (call-interactively #'consult-ripgrep)
+      (let ((default-directory (custom/touch-search--dir)))
+        (call-interactively #'consult-ripgrep))
     (call-interactively #'consult-line)))
 
 ;; ─── 触屏确认面板（widget 是/否，替代键盘 y-or-n） ─────────────────
