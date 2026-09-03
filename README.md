@@ -133,6 +133,8 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 
 ## 桌面开发期验证（沙箱，不污染真实配置）
 
+一键验证（冒烟 + 全模块零警告编译）：`just verify`；以下为等价的原理命令与 tmux 排版校验：
+
 ```sh
 # 加载冒烟测试
 HOME=$(pwd)/.sandbox emacs --batch \

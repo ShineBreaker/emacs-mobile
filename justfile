@@ -226,6 +226,38 @@ packages:
         -l early-init.el -l init.el
     echo "全部插件已构建完成"
 
+# 交付前验证：沙箱冒烟 + 全模块 byte-compile 零警告（guix site-lisp 噪声已排除）
+[group('配置依赖')]
+verify:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    here=$(pwd)
+    export HOME="$here/.sandbox"
+    mkdir -p "$HOME"
+    echo "==> 冒烟（完整 init 加载）"
+    emacs --batch \
+        --eval "(setq user-emacs-directory \"$here/\")" \
+        -l early-init.el -l init.el
+    echo "==> 全模块 byte-compile（零警告检查）"
+    status=0
+    for el in modules/init-*.el; do
+        out=$(emacs --batch \
+            --eval "(setq user-emacs-directory \"$here/\")" \
+            -l early-init.el -l init.el \
+            --eval "(byte-compile-file \"$here/$el\")" 2>&1 \
+            | grep -E 'Warning:|Error' | grep -v guix-emacs || true)
+        if [[ -n "$out" ]]; then
+            echo "── $el"
+            echo "$out"
+            status=1
+        fi
+    done
+    if (( status )); then
+        echo "验证失败：存在编译警告"
+        exit 1
+    fi
+    echo "==> 通过：冒烟 + 全模块零警告"
+
 # 清理编译产物与本地缓存：仓库内 *.elc、eln-cache/ 与桌面沙箱 .sandbox/
 [group('清理垃圾')]
 clean-emacs:

@@ -25,6 +25,7 @@ Android 原生 Emacs 触屏配置（纯触屏、无键盘交互）＋ Termux APK
 ## 改动后验证
 
 - 桌面验证一律以 `HOME=$(pwd)/.sandbox` 隔离，禁止污染真实配置；Android 特化代码在 `(when custom:android-p ...)` 守卫内，桌面加载自动跳过。
+- 一键验证：`just verify`（沙箱冒烟 + 全模块 byte-compile 零警告检查，下述命令的聚合）。
 - 冒烟测试（跑完整 init）：
   ```sh
   HOME=$(pwd)/.sandbox emacs --batch \
