@@ -86,8 +86,6 @@ just emacs    # termux-deps → font → icons → packages，一条命令补全
 M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 ```
 
-⚠️ 待真机验证：`(featurep 'sqlite3)`（内置 sqlite 模块可用性）。
-
 ## 6. 镜像源
 
 - ELPA/MELPA：默认 TUNA，改 `modules/init-packages.el` 里的 `custom/elpa-mirror`（`'tuna` / `'ustc` / `nil` 官方）。
@@ -101,7 +99,7 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 (window-system)                  ; => android
 (executable-find "git")          ; Termux 协作是否生效
 (native-comp-available-p)        ; 预计 nil，配置不依赖 .eln
-(featurep 'sqlite3)              ; org-roam 依赖
+(executable-find "sqlite3")  ; org-roam 依赖（CLI 后端，非内置模块）
 ```
 
 ## 8. 常见问题

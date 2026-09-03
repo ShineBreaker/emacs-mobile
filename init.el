@@ -63,7 +63,8 @@ custom:termux-repo:     %s
 Termux home 可访问:     %s
 Termux bin 存在:        %s
 modules 在 load-path:   %s
-sqlite3 内置模块:       %S   ; org-roam db 可用性
+sqlite3 CLI 可用:       %s   ; org-roam 依赖（CLI 后端）
+ripgrep (rg) 可用:      %s
 native-comp 可用:       %S
 org 目录存在:           %s
 
@@ -79,7 +80,8 @@ org 目录存在:           %s
         (and (member (expand-file-name "modules" user-emacs-directory)
                      load-path)
              t)
-        (featurep 'sqlite3)
+        (executable-find "sqlite3")
+        (executable-find "rg")
         (native-comp-available-p)
         (if (and (boundp 'custom:org-directory)
                  custom:org-directory)
