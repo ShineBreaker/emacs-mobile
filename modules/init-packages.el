@@ -60,7 +60,9 @@
 (defconst custom/straight-pinned-versions
   '(("org-roam" . "69116a4da49448e79ac03aedceeecd9f5ae9b2d4")  ; v2.2.2
     ("emacsql" . "c1a44076c0e44d5730b67b13c0e741f66f52fc85")  ; 3.1.1（tag 为 annotated，指向此 commit）
-    ("emacsql-sqlite3" . "2113618732665f2112cb932a66c0e89c404d8777"))
+    ("emacsql-sqlite3" . "2113618732665f2112cb932a66c0e89c404d8777")
+    ("dashboard" . "a2c49ba27f3a906fd8b059da55104c1ec562b8b6")  ; master 无近期 tag；被 advice 内部 API（dashboard--section-starts 等）
+    ("markdown-mode" . "f441e8bc9951e73b12c61e9198658488dd8e86e1"))  ; 被 declare 私有 API（markdown--table-line-to-columns 等）
   "锁定的包版本（repo 名 → commit）。
 org-roam 2.3+ 的 emacsql 内置 sqlite 后端在 Android 不可用，须与
 emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
@@ -121,10 +123,14 @@ emacsql 3.x（sqlite3 CLI 后端）一同 pin，见 init-org.el。")
        (concat (or custom/github-proxy "")
                "https://raw.githubusercontent.com/radian-software/straight.el/master/install.el")))
   (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously install-url 'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
+    ;; TIMEOUT 60s：nil 会无限等，弱网首启挂死且零输出
+    (let ((buf (url-retrieve-synchronously install-url 'silent
+                                           'inhibit-cookies 60)))
+      (if (not buf)
+          (error "straight 安装脚本下载超时（60s）。弱网环境可设 custom/github-proxy 走加速代理后重启")
+        (with-current-buffer buf
+          (goto-char (point-max))
+          (eval-print-last-sexp)))))
   (load bootstrap-file nil 'nomessage))
 
 ;; ─── 第 1 层：package-archives 镜像（package.el fallback） ──────────
