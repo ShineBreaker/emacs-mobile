@@ -115,6 +115,7 @@
 
 (defvar which-key--buffer nil)  ; which-key.el
 (defvar which-key--pages-obj nil)  ; which-key.el
+(defvar which-key--paging-functions nil)  ; which-key.el
 (declare-function which-key-show-next-page-cycle "which-key")
 (declare-function which-key-show-previous-page-cycle "which-key")
 (declare-function which-key--pages-pages "which-key")

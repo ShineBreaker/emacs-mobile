@@ -302,9 +302,11 @@ mode-line 渲染串宽(列): %S"
        (not (buffer-base-buffer))
        (not (file-remote-p buffer-file-name))))
 
+(declare-function recentf-save-list "recentf")
+
 (defun custom/recentf-save ()
   "持久化 recentf 列表（Android 后台被杀时 kill-emacs-hook 不执行）。"
-  (when (and (bound-and-true-p recentf-mode) (fboundp 'recentf-save-list))
+  (when (bound-and-true-p recentf-mode)
     (recentf-save-list)))
 
 (defun custom/save-user-file-buffers ()

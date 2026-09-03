@@ -12,6 +12,7 @@
 ;;; Code:
 
 (declare-function dashboard-open "dashboard")
+(declare-function dired-hide-details-mode "dired")
 (declare-function dired-mouse-find-file "dired")
 (declare-function custom/icon-asset "init-basis")
 (defvar dired-mode-map)
