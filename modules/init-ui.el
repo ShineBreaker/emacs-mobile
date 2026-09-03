@@ -299,7 +299,7 @@ mode-line 渲染串宽(列): %S"
 
 ;; 访问文件定期真保存：失焦保存依赖的 after-focus-change-function 在
 ;; Android 端口触发未证实，此为后台被杀丢数据的地板（间隔
-;; auto-save-timeout，默认 30s idle；直写访问文件，无 #file# 垃圾）
+;; auto-save-visited-interval，默认 5s 定时器；直写访问文件，无 #file# 垃圾）
 (auto-save-visited-mode 1)
 
 (defconst custom:focus-save-idle-delay 1

@@ -186,9 +186,10 @@
       ;; 清残留 sqlite3 子进程：Emacs 被系统杀掉时子进程成孤儿，独占
       ;; org-roam.db 文件锁，新连接打开同一 db 时阻塞直至 emacsql-wait
       ;; 超时（30s）。pkill -f 按 db 完整路径匹配，不影响其它 sqlite3。
-      (call-process "pkill" nil nil nil "-f"
-                    (expand-file-name ".cache/emacs/org-roam.db"
-                                      custom:data-home))
+      (when (executable-find "pkill")
+        (call-process "pkill" nil nil nil "-f"
+                      (expand-file-name ".cache/emacs/org-roam.db"
+                                        custom:data-home)))
       (setq org-roam-database-connector 'sqlite3)
       :custom
       (org-roam-directory custom:org-roam-directory)
