@@ -46,10 +46,28 @@
         (custom/dashboard--recent-roam-files 5)
 
         ;; 3) Android 专属 tool-bar 安装（桌面 init 不执行，显式跑一遍）
+        ;;    断言顺序（keymap 逆序存储，install 末尾反转，真机曾反馈顺序反了）、
+        ;;    图标高度契约、SVG 重着色按主题生效
         (custom/bar--install)
-        (let ((n (length (cdr tool-bar-map))))
-          (unless (= 10 n)
-            (error "tool-bar 按钮数异常: %d（期望 10）" n)))
+        (let* ((bindings (cdr tool-bar-map))
+               (expected '(modbar open save copy paste cut search theme config quick))
+               (keys (mapcar #'car bindings)))
+          (unless (equal keys expected)
+            (error "tool-bar 顺序异常: %S（期望 %S）" keys expected))
+          (dolist (k expected)
+            (let* ((mi (cdr (assq k bindings)))
+                   (img (plist-get (nthcdr 3 mi) :image)))
+              (unless img (error "tool-bar %s 缺少图标" k))
+              (unless (equal custom/bar-icon-height (image-property img :height))
+                (error "tool-bar %s 图标高度 %S（期望 %d）"
+                       k (image-property img :height) custom/bar-icon-height))))
+          (when (image-type-available-p 'svg)
+            (dolist (color (list custom/bar-icon-color-light custom/bar-icon-color-dark))
+              (let ((data (image-property
+                           (custom/icon-asset "open" nil custom/bar-icon-height color)
+                           :data)))
+                (unless (and data (string-match-p (regexp-quote color) data))
+                  (error "SVG 重着色未生效：%s 的数据里找不到颜色 %s" "open" color))))))
 
         ;; 4) dired 下右端钮组省略首项 M-x（40 列窄屏给文件操作钮留宽）
         (let ((normal (string-width (custom/mode-line--buttons)))
