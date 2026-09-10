@@ -15,7 +15,11 @@
 
 (use-package recentf
   :config
+  ;; 默认值 mode 会在 recentf-mode 开启时立即对全表逐条 file-readable-p；
+  ;; 最近文件多在 FUSE 共享存储，启动期百次级系统调用阻塞首屏，改为空闲时清理
+  (setq recentf-auto-cleanup 'never)
   (recentf-mode)
+  (run-with-idle-timer 5 nil #'recentf-cleanup)
   :custom
   (recentf-save-file (expand-file-name "recentf" custom:var-directory))
   (recentf-max-saved-items 100)
