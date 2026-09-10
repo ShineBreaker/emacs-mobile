@@ -51,12 +51,20 @@
 
 (declare-function custom/dashboard--recent-roam-files "init-dashboard")
 (declare-function custom/dashboard--note-title "init-dashboard")
+(declare-function org-element-parse-buffer "org-element")
 
 (defun custom/perf--elapsed (thunk)
   "执行 THUNK，返回 (耗时 . 结果)。"
   (let ((t0 (float-time)))
     (let ((res (funcall thunk)))
       (cons (- (float-time) t0) res))))
+
+(defun custom/perf--bench (n thunk)
+  "跑 THUNK 共 N 次，返回 (总秒 . 每次毫秒)。"
+  (let ((t0 (float-time)))
+    (dotimes (_ n) (funcall thunk))
+    (let ((el (- (float-time) t0)))
+      (cons el (* 1000.0 (/ el n))))))
 
 (defun custom/perf-report ()
   "实测关键路径耗时并弹出 buffer（真机排障用）。"
@@ -71,6 +79,17 @@
                  (lambda ()
                    (let ((f (car (custom/dashboard--recent-roam-files 1))))
                      (and f (custom/dashboard--note-title f))))))
+         ;; 交互基准：全部在 pop-to-buffer 之前、调用者原 buffer/窗口上下文里测
+         (ml (custom/perf--bench 100
+                                 (lambda () (format-mode-line mode-line-format))))
+         (bsize (buffer-size))
+         (org-p (derived-mode-p 'org-mode))
+         (parse (and org-p (< bsize 300000)
+                     (custom/perf--bench 1
+                                         (lambda () (org-element-parse-buffer)))))
+         (parse-line (cond (parse (format "%.3f s（%d 字节）" (car parse) bsize))
+                           (org-p (format "跳过（buffer %d 字节，超 300KB）" bsize))
+                           (t (format "跳过（非 org buffer，%d 字节）" bsize))))
          (buf (get-buffer-create "*emacs-mobile 性能*")))
     (with-current-buffer buf
       (fundamental-mode)
@@ -82,13 +101,18 @@ GC 阈值:           %s
 recentf 条目数:    %d
 org 笔记目录:      %s
 
-── 现场重测（缓存可能已热，看量级不看绝对值）──
+── 现场重测 I/O（缓存可能已热，看量级不看绝对值）──
 列笔记目录:        %.3f s（%d 个 .org）
 仪表盘首屏数据:    %.3f s（%d 条）
 笔记标题读取:      %.3f s（首条 %s）
 
-参考：桌面列目录 <0.01s。真机上明显更大属 FUSE 存储差异；
-若数字正常但交互卡顿，瓶颈在代码路径而非 I/O。"
+── 交互基准（纯 CPU，与存储无关）──
+mode-line 重绘:    100 次共 %.3f s（每次 %.2f ms）
+当前 buffer parse: %s
+
+参考：桌面列目录 <0.01s、mode-line 重绘每次亚毫秒。
+I/O 偏大属 FUSE 存储差异；mode-line 每次偏大 → 每按键每滚动都付费；
+parse 偏大 → 保存该尺寸的 org 笔记会卡（走 after-save 增量索引）。"
                (emacs-init-time)
                (length features)
                gc-cons-threshold
@@ -96,7 +120,9 @@ org 笔记目录:      %s
                (or custom:org-roam-directory "(未定义)")
                (car roam) (cdr roam)
                (car dash) (cdr dash)
-               (car title) (or (cdr title) "(无)")))
+               (car title) (or (cdr title) "(无)")
+               (car ml) (cdr ml)
+               parse-line))
       (goto-char (point-min)))
     (pop-to-buffer buf)))
 
