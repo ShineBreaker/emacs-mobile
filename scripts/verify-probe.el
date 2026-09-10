@@ -51,7 +51,16 @@
           (unless (= 10 n)
             (error "tool-bar 按钮数异常: %d（期望 10）" n)))
 
-        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮"))
+        ;; 4) dired 下右端钮组省略首项 M-x（40 列窄屏给文件操作钮留宽）
+        (let ((normal (string-width (custom/mode-line--buttons)))
+              (dired (with-temp-buffer
+                       (setq major-mode 'dired-mode)
+                       (string-width (custom/mode-line--buttons)))))
+          (unless (< dired normal)
+            (error "dired 下 M-x 钮未过滤：常规 %d 列 vs dired %d 列"
+                   normal dired)))
+
+        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩"))
     (error
      (message "VERIFY-PROBE-FAIL %s" (error-message-string err))
      (kill-emacs 1))))

@@ -155,6 +155,7 @@
 (declare-function consult-org-heading "consult")
 (declare-function consult-imenu "consult")
 (declare-function consult-line "consult")
+(declare-function custom/touch-show-keyboard "init-touch")
 
 (defun custom/mode-line-navigate ()
   "当前文档内导航：org 大纲 / epub 章节 / 其余本页搜索。"
@@ -164,19 +165,27 @@
    ((derived-mode-p 'nov-mode) (consult-imenu))
    (t (consult-line))))
 
+(defun custom/mode-line-execute-command ()
+  "执行 M-x；触屏无物理键盘，先主动唤出虚拟键盘。"
+  (interactive)
+  (custom/touch-show-keyboard)
+  (call-interactively #'execute-extended-command))
+
 ;; ─── 右端按钮组：数据表驱动 ────────────────────────────────────────
-;; 对齐偏移须按真实字形宽自算：官方 `mode-line-format-right-align' 以
-;; string-width 计右组宽，NF 私用区字形记 1 列但 Maple 实渲 2 列，
-;; 组整体溢出右缘（× 钮出界不可点）。GUI NF 按 2 列计，tty 回退
-;; 字符无歧义按 string-width。
+;; 不用官方 `mode-line-format-right-align'：它以 right-fringe 为参照，
+;; 右 fringe 非零时尾钮越出文本区右缘，落在 fringe 上的 tap 不派发
+;; （真机 × 右侧约 1/4 不可点）。改自算弹性空格，宽度按当前宽度表
+;; （GUI 的 NF 字形 advance 恰 1 列，仅 NF tty 校验模式置 2）。
 
 (defconst custom/mode-line--right-buttons
-  '(("\uF002" "寻" "文档内导航（org 大纲 / epub 章节 / 本页搜索）"
+  '(("\uF120" "命" "执行所有命令 (M-x)" custom/mode-line-execute-command)
+    ("\uF002" "寻" "文档内导航（org 大纲 / epub 章节 / 本页搜索）"
      custom/mode-line-navigate)
     ("\uF0A9" "»" "which-key 下一页" custom/which-key-next-page)
     ("\uF0EC" "换" "切换缓冲区" custom/mode-line-switch-buffer)
     ("\uF00D" "×" "关闭当前 buffer 及其窗口" kill-buffer-and-window))
-  "右端按钮表：(NF 字形 tty 回退 帮助 命令)，从左到右。")
+  "右端按钮表：(NF 字形 tty 回退 帮助 命令)，从左到右。
+首项 M-x 在 dired 下隐藏，见 `custom/mode-line--buttons'。")
 
 (defun custom/mode-line--button (spec &optional pad)
   "按 SPEC（字形 回退 帮助 命令）构造单颗按钮，前导 PAD 列空格（默认 2）。"
@@ -203,8 +212,13 @@
   :group 'emacs-mobile)
 
 (defun custom/mode-line--buttons ()
-  "右端按钮组串。"
-  (mapconcat #'custom/mode-line--button custom/mode-line--right-buttons nil))
+  "右端按钮组串。dired 下省去首项 M-x：该场景局部文件操作钮已占满
+宽度（40 列下仅余 2 列），且文件管理时 M-x 需求低。"
+  (mapconcat #'custom/mode-line--button
+             (if (derived-mode-p 'dired-mode)
+                 (cdr custom/mode-line--right-buttons)
+               custom/mode-line--right-buttons)
+             nil))
 
 (defun custom/mode-line--right-space ()
   "右端按钮组前的弹性空格：对齐文本区右缘再内缩左右边距列。
