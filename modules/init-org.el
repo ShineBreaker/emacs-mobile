@@ -29,7 +29,9 @@
       (with-temp-file (expand-file-name "index.org" dir)
         (insert "#+title: 议程\n\n* 任务\n")))))
 
-(custom/org--ensure-agenda-file)
+;; 推迟到空闲：org 根在 FUSE 共享存储上，启动期同步 stat/列目录会阻塞首屏；
+;; 议程与 capture 入口各自已调用 ensure，用户抢先操作也不缺目录
+(run-with-idle-timer 1 nil #'custom/org--ensure-agenda-file)
 
 (use-package org
   :defer t

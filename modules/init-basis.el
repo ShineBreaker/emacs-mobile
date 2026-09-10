@@ -45,23 +45,31 @@
 
 ;; ─── 图标与字形（唯一入口：tool-bar 按钮、modifier-bar 徽章、mode-line 字形） ──
 
+(defvar custom/icon--svg-cache (make-hash-table :test 'equal)
+  "SVG 图标 (NAME COLOR HEIGHT) → image 的会话内缓存。
+同一色重复安装按钮（主题来回切换）时省一次读盘 + 正则替换 + librsvg 解析。")
+
 (defun custom/icon--svg-image (name color height)
   "重着色 data/icons/NAME.svg 的 ColorScheme-Text 为 COLOR 后按 HEIGHT 建图；
 无 librsvg 或文件缺失时返回 nil。"
-  (let ((svg (expand-file-name (concat name ".svg")
-                               (expand-file-name "data/icons"
-                                                 user-emacs-directory))))
-    (and (image-type-available-p 'svg)
-         (file-exists-p svg)
-         (ignore-errors
-          (create-image
-           (replace-regexp-in-string
-            "ColorScheme-Text { color:#[0-9a-fA-F]\\{6\\}"
-            (concat "ColorScheme-Text { color:" color)
-            (with-temp-buffer
-              (insert-file-contents svg)
-              (buffer-string)))
-           'svg t :height height)))))
+  (let ((key (list name color height)))
+    (or (gethash key custom/icon--svg-cache)
+        (let* ((svg (expand-file-name (concat name ".svg")
+                                      (expand-file-name "data/icons"
+                                                        user-emacs-directory)))
+               (img (and (image-type-available-p 'svg)
+                         (file-exists-p svg)
+                         (ignore-errors
+                          (create-image
+                           (replace-regexp-in-string
+                            "ColorScheme-Text { color:#[0-9a-fA-F]\\{6\\}"
+                            (concat "ColorScheme-Text { color:" color)
+                            (with-temp-buffer
+                              (insert-file-contents svg)
+                              (buffer-string)))
+                           'svg t :height height)))))
+          (when img (puthash key img custom/icon--svg-cache))
+          img))))
 
 (defun custom/icon-asset (key &optional mod height color)
   "KEY 按钮图标：MOD 非 nil 时查 mod-KEY 徽章（PBM 优先 PNG 兜底），
