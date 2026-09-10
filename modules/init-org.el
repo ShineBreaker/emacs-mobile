@@ -160,7 +160,8 @@
 ;; Android 官方 APK 无内置 sqlite（(featurep 'sqlite3) = nil），org-roam
 ;; 2.3+ 的 emacsql 内置后端不可用 → pin 2.2.2 + emacsql 3.1.1（sqlite3
 ;; CLI 后端仅存于 emacsql 3.x），走 Termux 的 sqlite3（缺失则跳过）。
-;; 已知代价：每查询 spawn 进程（官方标注 BROKEN，#1927 缓存 bug）。
+;; 已知代价：常驻 sqlite3 CLI 子进程，每条语句经管道往返同步等待（建立
+;; 连接时 make-process 一次，之后复用）；官方将该后端标为 BROKEN（#1927 缓存 bug）。
 
 (defun custom/org-roam-update-on-save ()
   "保存 org-roam 文件后增量更新索引。"
