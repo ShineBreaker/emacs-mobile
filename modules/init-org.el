@@ -163,11 +163,47 @@
 ;; 已知代价：常驻 sqlite3 CLI 子进程，每条语句经管道往返同步等待（建立
 ;; 连接时 make-process 一次，之后复用）；官方将该后端标为 BROKEN（#1927 缓存 bug）。
 
+(defcustom custom/org-roam-defer-threshold (* 100 1024)
+  "超过此字节数的 org-roam 文件改为延迟合并索引。
+索引要全文 parse（227KB 桌面实测 0.4s，真机数倍），放在保存路径会卡输入。"
+  :type 'integer
+  :group 'emacs-mobile)
+
+(defvar custom/org-roam--pending nil
+  "保存后待索引的大文件（合并连续保存，避免每次都同步 parse 全文）。")
+(defvar custom/org-roam--flush-timer nil
+  "待索引刷新计时器（去重用；idle 与绝对计时两条路都调 flush）。")
+
 (defun custom/org-roam-update-on-save ()
-  "保存 org-roam 文件后增量更新索引。"
+  "保存 org-roam 文件后增量更新索引。
+小文件立即更新保持即时性；大文件（超 `custom/org-roam-defer-threshold'）
+只记入待办，由 `custom/org-roam-flush-pending' 择机合并刷新。"
   (when (org-roam-file-p (buffer-file-name))
-    (with-demoted-errors "org-roam 索引更新失败: %S"
-      (org-roam-db-update-file))))
+    (if (< (buffer-size) custom/org-roam-defer-threshold)
+        (with-demoted-errors "org-roam 索引更新失败: %S"
+          (org-roam-db-update-file))
+      (add-to-list 'custom/org-roam--pending (buffer-file-name))
+      (unless (timerp custom/org-roam--flush-timer)
+        ;; idle 优先（用户停手后才做重活）；绝对计时兜底——Android 功耗
+        ;; 管理下 idle timer 疑不触发
+        (setq custom/org-roam--flush-timer
+              (run-with-idle-timer 3 nil #'custom/org-roam-flush-pending))
+        (run-with-timer 15 nil #'custom/org-roam-flush-pending)))))
+
+(defun custom/org-roam-flush-pending ()
+  "把待索引文件写进 org-roam db（幂等，可被 idle/绝对计时/退出钩子调用）。"
+  (when (timerp custom/org-roam--flush-timer)
+    (cancel-timer custom/org-roam--flush-timer)
+    (setq custom/org-roam--flush-timer nil))
+  (let ((files (prog1 (nreverse custom/org-roam--pending)
+                 (setq custom/org-roam--pending nil))))
+    (when files
+      (with-demoted-errors "org-roam 索引更新失败: %S"
+        (dolist (f files)
+          (when (file-exists-p f)
+            (org-roam-db-update-file f)))))))
+
+(add-hook 'kill-emacs-hook #'custom/org-roam-flush-pending)
 
 (let ((sqlite3 (executable-find "sqlite3")))
   (if (not sqlite3)
