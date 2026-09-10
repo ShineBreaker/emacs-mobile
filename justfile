@@ -249,6 +249,22 @@ verify:
     printf '%s\n' "$probe" | grep -v 'guix-emacs-c-source\|^You can add\|^See \|^for more' || true
     grep -q 'VERIFY-PROBE-OK' <<<"$probe" \
         || { echo "验证失败：探针未通过"; exit 1; }
+    echo "==> 图标字形覆盖（地图字体缺字形时真机渲染成回退框，历史上踩过 ✦/╭╯）"
+    # 同 icons 配方的坑：grep -q 命中即退会让 fc-list 吃 EPIPE，pipefail 下误判
+    if fc-list :family 2>/dev/null | grep -i maple >/dev/null; then
+        missing=""
+        for cp in $(grep -ohE '\\u[0-9A-Fa-f]{4}' modules/*.el | sed 's/\\u//' | sort -u); do
+            fc-list ":charset=$cp" family 2>/dev/null | grep -i maple >/dev/null \
+                || missing="$missing U+$cp"
+        done
+        if [[ -n "$missing" ]]; then
+            echo "验证失败：以下码点在 Maple 字体中缺字形：$missing"
+            exit 1
+        fi
+        echo "    全部图标码点均有字形"
+    else
+        echo "    跳过（本机无 Maple 字体，跑 just font 后再验）"
+    fi
     echo "==> 全模块 byte-compile（零警告检查）"
     status=0
     for el in modules/init-*.el; do
