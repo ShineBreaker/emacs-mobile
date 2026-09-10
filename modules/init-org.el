@@ -172,14 +172,18 @@
   (if (not sqlite3)
       (display-warning 'init-org
                        "sqlite3 CLI 不可用，org-roam 未启用（Termux: pkg install sqlite3）")
+    ;; emacsql / emacsql-sqlite3 均延迟：org-roam-db 建立连接时自行
+    ;; `(require 'emacsql-sqlite3)'（org-roam-db--conn-fn，按 connector
+    ;; 分支加载），启动期只需超时值就位（defvar 变量，先设再加载）
     (use-package emacsql
+      :defer t
       :init
-      ;; defvar 变量，先设再加载（defvar 不覆盖已绑定值）。3s：db 被
-      ;; 残留进程锁住时查询快速失败降级，默认 30s 在触屏上无法中断
+      ;; 3s：db 被残留进程锁住时查询快速失败降级，默认 30s 在触屏上无法中断
       (setq emacsql-global-timeout 3))
     ;; connector 是运行时选择，org-roam 声明依赖里没有 emacsql-sqlite3，
-    ;; 须显式安装
-    (use-package emacsql-sqlite3)
+    ;; 须显式安装（延迟加载，保证 straight 装包即可）
+    (use-package emacsql-sqlite3
+      :defer t)
     ;; magit-section 的 transient 需求由内置满足（31.1 起 0.13.5）
     (use-package org-roam
       :defer t
