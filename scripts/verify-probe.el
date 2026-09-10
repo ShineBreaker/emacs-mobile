@@ -78,7 +78,13 @@
             (error "dired 下 M-x 钮未过滤：常规 %d 列 vs dired %d 列"
                    normal dired)))
 
-        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩"))
+        ;; 5) which-key 开启兜底必需：Android 下 idle timer 疑不触发，
+        ;;    只挂 idle 会让 which-key 与其触屏翻页钮一起永久失效
+        (custom/which-key-ensure)
+        (unless (bound-and-true-p which-key-mode)
+          (error "custom/which-key-ensure 调用后 which-key-mode 仍未开启"))
+
+        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩、which-key 兜底"))
     (error
      (message "VERIFY-PROBE-FAIL %s" (error-message-string err))
      (kill-emacs 1))))

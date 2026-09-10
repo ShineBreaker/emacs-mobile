@@ -204,6 +204,11 @@ SYM（prev/next）作 wk-page-button 属性标记，供前缀序列路径的
 (advice-add 'which-key--show-popup :around
             #'custom/which-key--popup-with-buttons)
 
+(defun custom/which-key-ensure ()
+  "确保 which-key 已开启（幂等）。idle 与绝对计时兜底共用。"
+  (unless (bound-and-true-p which-key-mode)
+    (which-key-mode 1)))
+
 (use-package which-key
   :defer t
   ;; Emacs 30/31.1 内置 3.6.1（中文描述列宽对齐的 string-width 修复在
@@ -228,8 +233,11 @@ SYM（prev/next）作 wk-page-button 属性标记，供前缀序列路径的
           ;; 多层前缀启用官方 paging（翻页按钮依赖其分页状态）
           (which-key-paging-prefixes '("C-x" "C-c" "C-h" "M-s" "M-g"))
   :init
-  ;; 空闲才加载并开启：包加载与中文描述注册不占启动时间
-  (run-with-idle-timer 1 nil #'which-key-mode)
+  ;; 空闲才加载并开启：包加载与中文描述注册不占启动时间。
+  ;; 绝对计时兜底：Android 功耗管理下 idle timer 疑不触发（历史观察），
+  ;; 只挂 idle 会让 which-key 永久缺席（含依赖它的触屏翻页按钮）
+  (run-with-idle-timer 1 nil #'custom/which-key-ensure)
+  (run-with-timer 20 nil #'custom/which-key-ensure)
   :config
   (custom/which-key-apply-descriptions))
 
