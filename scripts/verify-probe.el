@@ -1,0 +1,59 @@
+;;; verify-probe.el --- 交付前验证：启动后路径探针 -*- lexical-binding: t; -*-
+
+;; SPDX-FileCopyrightText: 2026 BrokenShine <xchai404@gmail.com>
+;; SPDX-License-Identifier: MIT
+
+;;; Commentary:
+;; `just verify' 的第三段：batch 冒烟不会触发 `emacs-startup-hook'，
+;; 且 Android 专属分支被 `custom:android-p' 守卫跳过，dashboard 首屏
+;; 生成、tool-bar 按钮安装、图标资产解析这些路径在桌面验证中从不运行。
+;; 本探针显式调用它们。
+;;
+;; 结论以哨兵行输出，不依赖退出码：Guix 的 emacs 是 Guile wrapper，
+;; 任何错误的退出码都会被吞成 0；wrapper 只保留执行流，故调用方必须
+;; 检查 `VERIFY-PROBE-OK' 是否出现（缺哨兵即失败）。
+;;
+;; 用法: emacs --batch -l scripts/verify-probe.el
+
+;;; Code:
+
+(let* ((repo (file-name-directory
+              (directory-file-name
+               (file-name-directory (or load-file-name buffer-file-name))))))
+  (setq user-emacs-directory repo)
+  (condition-case err
+      (progn
+        (load (expand-file-name "early-init.el" repo))
+        (add-to-list 'load-path (expand-file-name "modules" repo))
+        (dolist (m '(init-basis init-packages init-ui init-touch init-bar
+                     init-completion init-org init-markdown init-dashboard
+                     init-reading init-misc))
+          (require m))
+
+        ;; 1) 图标资产：tool-bar 10 键 + modifier-bar 8 徽章全部可解析
+        ;;    （SVG 重着色 / PBM 徽章 / PNG 兜底回退链，见 custom/icon-asset）
+        (let ((missing nil))
+          (dolist (k '(modbar open save copy paste cut search theme config quick))
+            (unless (custom/icon-asset (symbol-name k) nil custom/bar-icon-height
+                                       custom/bar-icon-color-light)
+              (push k missing)))
+          (dolist (k '(control shift meta alt super hyper tab esc))
+            (unless (custom/icon-asset k t) (push k missing)))
+          (when missing
+            (error "图标资产缺失: %S（跑 `just icons' 重建）" (nreverse missing))))
+
+        ;; 2) 仪表盘首屏数据：列笔记目录 + 读文件头 #+title:
+        (custom/dashboard--recent-roam-files 5)
+
+        ;; 3) Android 专属 tool-bar 安装（桌面 init 不执行，显式跑一遍）
+        (custom/bar--install)
+        (let ((n (length (cdr tool-bar-map))))
+          (unless (= 10 n)
+            (error "tool-bar 按钮数异常: %d（期望 10）" n)))
+
+        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮"))
+    (error
+     (message "VERIFY-PROBE-FAIL %s" (error-message-string err))
+     (kill-emacs 1))))
+
+;;; verify-probe.el ends here

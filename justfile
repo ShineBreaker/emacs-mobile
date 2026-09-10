@@ -226,7 +226,7 @@ packages:
         -l early-init.el -l init.el
     echo "全部插件已构建完成"
 
-# 交付前验证：沙箱冒烟 + 全模块 byte-compile 零警告（guix site-lisp 噪声已排除）
+# 交付前验证：沙箱冒烟 + 启动后路径探针 + 全模块 byte-compile 零警告
 [group('配置依赖')]
 verify:
     #!/usr/bin/env bash
@@ -235,9 +235,20 @@ verify:
     export HOME="$here/.sandbox"
     mkdir -p "$HOME"
     echo "==> 冒烟（完整 init 加载）"
-    emacs --batch \
+    # Guix 的 emacs 是 Guile wrapper，任何错误的退出码都被吞成 0；
+    # 且出错后 Emacs 会中止后续命令行处理，故改以哨兵行判定（fail-closed）
+    smoke=$(emacs --batch \
         --eval "(setq user-emacs-directory \"$here/\")" \
-        -l early-init.el -l init.el
+        -l early-init.el -l init.el \
+        --eval '(message "VERIFY-SMOKE-OK")' 2>&1 || true)
+    printf '%s\n' "$smoke" | grep -v 'guix-emacs-c-source\|^You can add\|^See \|^for more' || true
+    grep -q 'VERIFY-SMOKE-OK' <<<"$smoke" \
+        || { echo "验证失败：init 未正常加载完成"; exit 1; }
+    echo "==> 启动后路径探针（仪表盘首屏 / 图标资产 / tool-bar 安装）"
+    probe=$(emacs --batch -l "$here/scripts/verify-probe.el" 2>&1 || true)
+    printf '%s\n' "$probe" | grep -v 'guix-emacs-c-source\|^You can add\|^See \|^for more' || true
+    grep -q 'VERIFY-PROBE-OK' <<<"$probe" \
+        || { echo "验证失败：探针未通过"; exit 1; }
     echo "==> 全模块 byte-compile（零警告检查）"
     status=0
     for el in modules/init-*.el; do
@@ -256,7 +267,7 @@ verify:
         echo "验证失败：存在编译警告"
         exit 1
     fi
-    echo "==> 通过：冒烟 + 全模块零警告"
+    echo "==> 通过：冒烟 + 启动后探针 + 全模块零警告"
 
 # 清理编译产物与本地缓存：仓库内 *.elc、eln-cache/ 与桌面沙箱 .sandbox/
 [group('清理垃圾')]
