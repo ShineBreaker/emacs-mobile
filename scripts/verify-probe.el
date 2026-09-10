@@ -84,7 +84,19 @@
         (unless (bound-and-true-p which-key-mode)
           (error "custom/which-key-ensure 调用后 which-key-mode 仍未开启"))
 
-        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩、which-key 兜底"))
+        ;; 6) mode-line 右端只构造一次按钮串：弹性空格与按钮串合并为单个
+        ;;    :eval（原先是两个，每次重绘把整组按钮连同 mouse-map 构造两遍）
+        (let* ((n 0)
+               (counter (lambda (&rest _) (cl-incf n))))
+          (advice-add #'custom/mode-line--buttons :before counter)
+          (unwind-protect
+              (progn
+                (custom/mode-line--right-part)
+                (unless (= n 1)
+                  (error "custom/mode-line--right-part 构造按钮串 %d 次（应 1 次）" n)))
+            (advice-remove #'custom/mode-line--buttons counter)))
+
+        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩、which-key 兜底、mode-line 单次构造"))
     (error
      (message "VERIFY-PROBE-FAIL %s" (error-message-string err))
      (kill-emacs 1))))

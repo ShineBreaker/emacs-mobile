@@ -199,7 +199,7 @@
 (defun custom/mode-line--add-local-buttons (fn)
   "buffer-local：在右端钮组前插入 (:eval (FN)) 按钮串。"
   (let* ((fmt (default-value 'mode-line-format))
-         (pos (seq-position fmt '(:eval (custom/mode-line--right-space)))))
+         (pos (seq-position fmt '(:eval (custom/mode-line--right-part)))))
     (when pos
       (setq-local mode-line-format
                   (append (seq-take fmt pos)
@@ -220,18 +220,24 @@
                custom/mode-line--right-buttons)
              nil))
 
-(defun custom/mode-line--right-space ()
-  "右端按钮组前的弹性空格：对齐文本区右缘再内缩左右边距列。
-官方 `mode-line-format-right-align' 以 right-fringe（fringe 外缘）为
-参照，右 fringe 非零的环境里按钮组整体多移一个 fringe 宽，尾钮单元
-越出文本区右缘、落在 fringe 上的 tap 不派发（真机 × 右侧约 1/4 不可
-点）；改以 `right'（文本区右缘）为参照，宽度按当前宽度表（GUI 与
-advance 一致，NF 校验模式已同步置 2）。"
-  (propertize
-   " " 'display
-   `(space . (:align-to
-              (- right ,(+ (string-width (custom/mode-line--buttons))
-                           custom/mode-line-edge-padding))))))
+(defun custom/mode-line--right-part ()
+  "mode-line 右端整体：弹性空格 + 按钮串。
+一次构造按钮串并复用其宽度——弹性空格与按钮串原先是两个 :eval，
+每次重绘会把整组按钮（含各自新建的 mouse-map keymap）构造两遍。
+
+弹性空格的对齐说明：官方 `mode-line-format-right-align' 以 right-fringe
+（fringe 外缘）为参照，右 fringe 非零的环境里按钮组整体多移一个 fringe
+宽，尾钮单元越出文本区右缘、落在 fringe 上的 tap 不派发（真机 × 右侧
+约 1/4 不可点）；改以 `right'（文本区右缘）为参照，宽度按当前宽度表
+（GUI 与 advance 一致，NF 校验模式已同步置 2）。"
+  (let ((btns (custom/mode-line--buttons)))
+    (concat
+     (propertize
+      " " 'display
+      `(space . (:align-to
+                 (- right ,(+ (string-width btns)
+                              custom/mode-line-edge-padding)))))
+     btns)))
 
 (defun custom/mode-line--mode-name ()
   "mode-name，超 12 列截断（窄屏防挤出右端按钮）。"
@@ -277,8 +283,7 @@ mode-line 渲染串宽(列): %S"
                 (:eval (custom/mode-line--mode-name))
                 "  "
                 (:eval (custom/mode-line--percent))
-                (:eval (custom/mode-line--right-space))
-                (:eval (custom/mode-line--buttons))))
+                (:eval (custom/mode-line--right-part))))
 
 ;; ─── 编辑行为（自桌面配置移植）───────────────────────────────────────
 ;; CJK 按字符类别折行（Emacs 29+ 内置）：中文段落无空格断点也能正常折行
