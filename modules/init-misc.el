@@ -44,5 +44,61 @@
   (require 'server)
   (unless (server-running-p) (server-start)))
 
+;; ─── 真机性能诊断 ───────────────────────────────────────────────────
+;; 启动路径耗时只能真机测（桌面 I/O 与 CPU 差距大）。本命令现场重测
+;; 关键路径：数字明显大于桌面（列目录通常 <0.01s）即说明是存储/CPU
+;; 瓶颈，否则是代码路径问题。
+
+(declare-function custom/dashboard--recent-roam-files "init-dashboard")
+(declare-function custom/dashboard--note-title "init-dashboard")
+
+(defun custom/perf--elapsed (thunk)
+  "执行 THUNK，返回 (耗时 . 结果)。"
+  (let ((t0 (float-time)))
+    (let ((res (funcall thunk)))
+      (cons (- (float-time) t0) res))))
+
+(defun custom/perf-report ()
+  "实测关键路径耗时并弹出 buffer（真机排障用）。"
+  (interactive)
+  (let* ((roam (custom/perf--elapsed
+                (lambda ()
+                  (length (directory-files custom:org-roam-directory t
+                                           "\\.org\\'")))))
+         (dash (custom/perf--elapsed
+                (lambda () (length (custom/dashboard--recent-roam-files 4)))))
+         (title (custom/perf--elapsed
+                 (lambda ()
+                   (let ((f (car (custom/dashboard--recent-roam-files 1))))
+                     (and f (custom/dashboard--note-title f))))))
+         (buf (get-buffer-create "*emacs-mobile 性能*")))
+    (with-current-buffer buf
+      (fundamental-mode)
+      (erase-buffer)
+      (insert
+       (format "启动总耗时:        %s
+已加载特性数:      %d
+GC 阈值:           %s
+recentf 条目数:    %d
+org 笔记目录:      %s
+
+── 现场重测（缓存可能已热，看量级不看绝对值）──
+列笔记目录:        %.3f s（%d 个 .org）
+仪表盘首屏数据:    %.3f s（%d 条）
+笔记标题读取:      %.3f s（首条 %s）
+
+参考：桌面列目录 <0.01s。真机上明显更大属 FUSE 存储差异；
+若数字正常但交互卡顿，瓶颈在代码路径而非 I/O。"
+               (emacs-init-time)
+               (length features)
+               gc-cons-threshold
+               (and (bound-and-true-p recentf-mode) (length recentf-list))
+               (or custom:org-roam-directory "(未定义)")
+               (car roam) (cdr roam)
+               (car dash) (cdr dash)
+               (car title) (or (cdr title) "(无)")))
+      (goto-char (point-min)))
+    (pop-to-buffer buf)))
+
 (provide 'init-misc)
 ;;; init-misc.el ends here

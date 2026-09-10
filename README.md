@@ -100,6 +100,7 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 (executable-find "git")          ; Termux 协作是否生效
 (native-comp-available-p)        ; 预计 nil，配置不依赖 .eln
 (executable-find "sqlite3")  ; org-roam 依赖（CLI 后端，非内置模块）
+(custom/perf-report)         ; 关键路径耗时实测（列笔记目录/仪表盘首屏数据）
 ```
 
 行为回归（2026-09 改进轮）：
