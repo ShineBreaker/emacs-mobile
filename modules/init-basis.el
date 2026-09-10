@@ -118,8 +118,9 @@
 (add-hook 'emacs-startup-hook #'custom/restore-startup-perf)
 
 ;; ─── modules 后台预编译 ─────────────────────────────────────────────
-;; 源码慢于字节码（Android 慢 CPU 差距放大）；空闲逐文件补齐，用户输入
-;; 会重置空闲计时自然避让。
+;; 源码慢于字节码（Android 慢 CPU 差距放大）；空闲逐文件补齐。间隔取 2s：
+;; byte-compile 在主线程同步跑、期间阻塞输入，间隔过短（曾 0.2s）会在用户
+;; 短暂停顿时连续抢占，2s 让有输入即重置计时、真正避让。
 
 (defun custom/compile-modules ()
   "编译 modules/ 下缺失或过期的 .el，编译后再安排下一轮。"
@@ -136,7 +137,7 @@
                (directory-files dir t "\\.el\\'"))))
     (when els
       (byte-compile-file (car els))
-      (run-with-idle-timer 0.2 nil #'custom/compile-modules))))
+      (run-with-idle-timer 2 nil #'custom/compile-modules))))
 
 (add-hook 'emacs-startup-hook
           (lambda ()
