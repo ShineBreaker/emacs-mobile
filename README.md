@@ -41,7 +41,9 @@ termux 版 Emacs 在 `https://ftp.gnu.org/gnu/emacs/android/termux/`（国内镜
 
 ## 3. 权限
 
-设置 → 特殊应用访问 → 所有文件访问 → 授予 Emacs。此后 `/storage/emulated/0/`（= `/sdcard/`）可 POSIX 直读直写。
+**存储**：未授予时启动仪表盘顶部会出现可点警示行，点按弹出官方授权面板（「所有文件访问」或按目录授权到 `/content/storage/`）；也可随时 `M-x custom/android-request-storage-access`。手动路径：设置 → 特殊应用访问 → 所有文件访问 → 授予 Emacs。授予后 `/storage/emulated/0/`（= `/sdcard/`）可 POSIX 直读直写。未授予时 org 目录静默回退到 Emacs 私有目录（能写但不在 Syncthing 同步范围）。
+
+**通知**：议程提醒走系统通知（`android-notifications-notify`，org agenda 的 deadline/scheduled/时间戳到点项在 agenda 加载时建表、每次刷新重建）。Android 13+ 首次弹通知时系统会询问是否允许；进程被系统杀掉则提醒失效（Emacs 靠常驻通知保命，存活率尚可但不保证）。
 
 ## 4. 部署
 
@@ -107,7 +109,11 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 
 - dashboard 点「搜」→ 默认检索目录应为 org 根而非共享存储根（后者全盘扫描分钟级）。
 - 编辑文件不保存直接切后台 ≥30s → 回来后文件已自动落盘（`auto-save-visited-mode`）。
-- `M-x custom/deploy-diagnose` → 「sqlite3 CLI 可用」「ripgrep (rg) 可用」行显示路径。
+- `M-x custom/deploy-diagnose` → 「sqlite3 CLI 可用」「ripgrep (rg) 可用」行显示路径；「外部存储权限」行显示已授予/未授予。
+- 未授予存储权限时重启 → dashboard 顶部出现「未授予存储权限」警示行，点按弹出授权面板。
+- agenda 含今日带时刻的 SCHEDULED/DEADLINE 条目 → 到点弹系统通知（通知栏可见，点击回 Emacs）。
+- 浏览器分享 `org-protocol://capture?url=...&title=...&body=...` 到 Emacs → 直接落 inbox（`kp` 模板，不弹编辑）。
+- eww 打开网页 → mode-line 出现「退」「外」两钮；「外」把当前页交给系统浏览器。
 
 ## 8. 常见问题
 
@@ -136,6 +142,9 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
   ```
 - **init 出错无法启动（官方逃生通道）**：Android 无命令行参数，可用系统设置里 Emacs 的偏好设置界面以 `--quick`（跳过 init）或 `--debug-init` 启动（Android 7+：设置 → 应用 → Emacs 的应用信息页入口；旧系统：桌面「Emacs options」图标，因厂商而异）。若报转储文件（dump file）损坏，同一界面可删除 Emacs 文件目录中的转储文件修复；也可用任意文件管理器经 Emacs 导出的 documents provider 直接改名/删除 init 文件。
 - **从其他 app 打开文件**：emacsclient 包装程序把文件转交给运行中的 Emacs 会话，要求 server 在跑（配置已在 Android 下默认启用，见 init-misc.el）；Emacs 未运行时首次打开会拉起完整启动，之后即可正常转交。
+- **从浏览器/其他 app 分享链接进 Emacs**：wrapper 同时注册了 `org-protocol://` handler；分享到 `org-protocol://capture?url=...&title=...&body=...` 直接落入 inbox（`kp` 模板，不弹编辑）。需 Emacs 已运行且 server 在跑（Android 下默认启用）。分享纯文本时标题取正文首行。
+- **按音量键没有调音量**：Emacs 默认把音量下键留作「无键盘 quit」——键盘忙碌/卡死时双击音量下键可中断（`android-quit-keycode` 可换键）。想让音量键恢复正常调音量，设 `(setq android-pass-multimedia-buttons-to-system t)`（代价：失去该 quit 兜底）。
+- **想授予 Emacs 某个目录而非整个存储**：`M-x android-request-directory-access`（内置命令）调系统文件选择器，授权目录挂在 `/content/storage/` 下。
 - **底部栏切换闪动**：切换会重算 frame 布局，若真机上明显需迭代。
 
 ## 桌面开发期验证（沙箱，不污染真实配置）
