@@ -18,6 +18,9 @@
 
 (defvar custom:termux-repo)  ; 唯一定义在 early-init.el（必然先于本文件运行）
 
+(declare-function android-external-storage-available-p "androidfns.c")
+(declare-function android-query-battery "androidfns.c")
+
 ;; ─── 部署诊断（不依赖 modules，require 失败后仍可用） ─────────────
 
 (defun custom/deploy--termux-home-p ()
@@ -66,6 +69,8 @@ modules 在 load-path:   %s
 sqlite3 CLI 可用:       %s   ; org-roam 依赖（CLI 后端）
 ripgrep (rg) 可用:      %s
 native-comp 可用:       %S
+外部存储权限:           %s   ; /sdcard 直读写前提
+电池电量:               %s
 org 目录存在:           %s
 
 结论:
@@ -83,6 +88,13 @@ org 目录存在:           %s
         (executable-find "sqlite3")
         (executable-find "rg")
         (native-comp-available-p)
+        (if (fboundp 'android-external-storage-available-p)
+            (if (android-external-storage-available-p) "已授予" "未授予")
+          "N/A（非 Android 构建）")
+        (if (fboundp 'android-query-battery)
+            (let ((st (android-query-battery)))
+              (if st (format "%s%%" (car st)) "查询失败"))
+          "N/A（非 Android 构建）")
         (if (and (boundp 'custom:org-directory)
                  custom:org-directory)
             (format "%s (%s)" custom:org-directory

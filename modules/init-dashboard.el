@@ -50,12 +50,19 @@
   '((t :weight bold))
   "navigator 按钮文字。" :group 'emacs-mobile)
 
+(defface custom/dashboard-warning
+  '((t :inherit warning :weight bold))
+  "存储权限未授予警示行。" :group 'emacs-mobile)
+
 ;; ─── 声明 ───────────────────────────────────────────────────────────
 
 (declare-function custom/glyph "init-basis")
 (declare-function custom/org--ensure-directories "init-org")
 (declare-function custom/org--ensure-agenda-file "init-org")
 (declare-function custom/touch-show-keyboard "init-touch")
+(declare-function custom/android-storage-granted-p "init-touch")
+(declare-function custom/android-request-storage-access "init-touch")
+(defvar custom:android-p)
 (defvar custom:org-directory)
 (defvar custom:org-roam-directory)
 (defvar org-capture-templates)
@@ -357,6 +364,26 @@ n·log(n) 次 stat 风暴。"
   (dashboard-center-text (line-beginning-position) (line-end-position))
   (insert "\n"))
 
+;; ─── 存储权限警示（官方 splash 提示的 dashboard 承接） ────────────
+
+(defun custom/dashboard-insert-permission-notice ()
+  "Android 存储权限未授予时插入可点警示行，已授予/非 Android 不输出。"
+  (when (and custom:android-p
+             (not (custom/android-storage-granted-p)))
+    (insert "\n  ")
+    (let ((beg (point)))
+      (widget-create 'item
+                     :tag (concat (custom/glyph "\uF071" "!")
+                                  " 未授予存储权限：点我授权（笔记/文件需要）")
+                     :action (lambda (&rest _)
+                               (custom/android-request-storage-access))
+                     :button-face 'custom/dashboard-warning
+                     :mouse-face 'highlight
+                     :button-prefix "" :button-suffix ""
+                     :format "%[%t%]")
+      (dashboard-center-text beg (point)))
+    (insert "\n")))
+
 ;; ─── 抓笔记：触屏模板选择面板 ───────────────────────────────────────
 ;; org-mks（*Org Select*）以 `read-key-exclusive' 读键盘字符，tap 事件
 ;; 无法选中且每次触摸触发一轮重绘，触屏上不可用；改 widget 按钮直达。
@@ -417,6 +444,7 @@ n·log(n) 次 stat 风暴。"
 (setq dashboard-startupify-list
       '(custom/dashboard-insert-hero
         custom/dashboard-insert-navigator
+        custom/dashboard-insert-permission-notice
         dashboard-insert-items
         custom/dashboard-insert-gap
         dashboard-insert-footer))

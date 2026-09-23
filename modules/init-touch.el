@@ -189,6 +189,28 @@
   (when (fboundp 'frame-toggle-on-screen-keyboard)
     (frame-toggle-on-screen-keyboard (selected-frame) nil)))
 
+;; ─── 存储权限（App 常规首启授权流） ──────────────────────────────
+;; 官方把未授权提示挂在启动屏（android-before-splash-screen），本配置
+;; 抑制启动屏改由 dashboard 承接（init-dashboard.el 警示行）；此处只
+;; 提供谓词与请求入口。
+
+(declare-function android-external-storage-available-p "androidfns.c")
+(declare-function android-display-storage-permission-popup "android-win")
+
+(defun custom/android-storage-granted-p ()
+  "Emacs 是否已能访问外部存储（/sdcard POSIX 直读写前提）。
+无查询接口的平台（桌面构建）视为已授予。"
+  (if (fboundp 'android-external-storage-available-p)
+      (android-external-storage-available-p)
+    t))
+
+(defun custom/android-request-storage-access ()
+  "弹出官方存储权限面板（授予「所有文件访问」或按目录授权）。"
+  (interactive)
+  (if (fboundp 'android-display-storage-permission-popup)
+      (android-display-storage-permission-popup)
+    (message "本 Emacs 无 Android 权限面板（非 Android 构建）")))
+
 ;; dired 窄屏精简：隐藏权限/属主/大小/时间细节列，只留文件名
 ;;（完整 -l 格式 60+ 列，手机屏文件名必然折行）
 (add-hook 'dired-mode-hook #'dired-hide-details-mode)
