@@ -96,7 +96,43 @@
                   (error "custom/mode-line--right-part 构造按钮串 %d 次（应 1 次）" n)))
             (advice-remove #'custom/mode-line--buttons counter)))
 
-        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩、which-key 兜底、mode-line 单次构造"))
+        ;; 7) 存储权限警示：桌面（非 Android）应静默无输出
+        (let ((buf (generate-new-buffer " *probe-perm*")))
+          (unwind-protect
+              (with-current-buffer buf
+                (custom/dashboard-insert-permission-notice)
+                (unless (zerop (buffer-size))
+                  (error "桌面环境权限警示应无输出，实际插入: %S"
+                         (buffer-string))))
+            (kill-buffer buf)))
+
+        ;; 8) org-protocol 分享链路：kp 模板已注册且被面板过滤隐藏；
+        ;;    标题 helper 优先取描述、空描述回退正文首行
+        (require 'org-capture)
+        (let ((kp (assoc "kp" org-capture-templates)))
+          (unless kp (error "org-capture-templates 缺少 kp 协议模板"))
+          (unless (memq :immediate-finish kp)
+            (error "kp 模板应为 :immediate-finish（分享直达，不弹编辑）")))
+        (let ((org-capture-plist '(:description "标题" :initial "正文")))
+          (unless (equal (custom/org-capture--protocol-heading) "标题")
+            (error "协议标题未取 :description")))
+        (let ((org-capture-plist '(:description "" :initial "首行\n次行")))
+          (unless (equal (custom/org-capture--protocol-heading) "首行")
+            (error "协议标题未回退正文首行")))
+        (let ((org-capture-plist '(:description nil :initial nil)))
+          (unless (equal (custom/org-capture--protocol-heading) "（分享内容）")
+            (error "协议标题空内容兜底失效")))
+
+        ;; 9) eww 钮组与外部打开分派 + appt 通知出口存在
+        (let ((s (custom/eww--mode-line-buttons)))
+          (unless (> (string-width s) 0)
+            (error "eww 钮串为空")))
+        (unless (fboundp 'custom/browse-url-external)
+          (error "custom/browse-url-external 未定义"))
+        (unless (fboundp 'custom/appt-notify)
+          (error "custom/appt-notify 未定义"))
+
+        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩、which-key 兜底、mode-line 单次构造、权限警示静默、kp 模板、eww/appt 接口"))
     (error
      (message "VERIFY-PROBE-FAIL %s" (error-message-string err))
      (kill-emacs 1))))
