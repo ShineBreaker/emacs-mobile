@@ -119,6 +119,11 @@
           ("kq" "剪贴板速存" entry
            (file ,custom:org-inbox-file)
            "* %(custom/org-capture--clip-heading)\n:PROPERTIES:\n:CREATED: %U\n:END:\n%(custom/org-capture--clip-body)\n"
+           :prepend t :immediate-finish t)
+          ;; org-protocol 分享入库：描述/链接/正文由协议参数填充
+          ("kp" "协议分享" entry
+           (file ,custom:org-inbox-file)
+           "* %(custom/org-capture--protocol-heading)\n:PROPERTIES:\n:CREATED: %U\n:END:\n%:link\n\n%:initial\n"
            :prepend t :immediate-finish t)))
   (add-hook 'org-capture-after-finalize-hook
             #'custom/org-capture--clear-state))
@@ -155,6 +160,34 @@
       (let ((custom/org-capture--clip-text clip))
         (org-capture nil "kq")
         (message "已速存：%s" (custom/org-capture--clip-heading))))))
+
+;; ─── org-protocol：其他 App 分享入库（org-protocol://capture） ─────
+;; Android 端口把 emacsclient wrapper 注册为 org-protocol handler，
+;; 链接经 server-visit-files 转交 org-protocol-capture（server 见
+;; init-misc.el）。默认模板必须显式指定：nil 会让 org-capture 弹
+;; org-mks *Org Select* 键盘面板，触屏不可选（见 init-dashboard.el）。
+
+(declare-function org-capture-get "org-capture")
+(defvar org-protocol-default-template-key)
+
+(defun custom/org-capture--protocol-heading ()
+  "协议分享条目标题：链接描述为空时取正文首行截 30 列。"
+  (let ((desc (org-capture-get :description)))
+    (if (and desc (not (string-empty-p (string-trim desc))))
+        desc
+      (let ((head (truncate-string-to-width
+                   (or (car (split-string
+                             (or (org-capture-get :initial) "") "[\r\n]+"))
+                       "")
+                   30 nil nil "…")))
+        (if (string-empty-p (string-trim head)) "（分享内容）" head)))))
+
+(when custom:android-p
+  ;; 空闲加载不占启动；server 侧 advice 在 require 后即刻生效
+  (run-with-idle-timer
+   5 nil (lambda ()
+           (require 'org-protocol)
+           (setq org-protocol-default-template-key "kp"))))
 
 ;; ─── org-roam（sqlite3 CLI 后端，db 各端独立重建） ──────────────────
 ;; Android 官方 APK 无内置 sqlite（(featurep 'sqlite3) = nil），org-roam
