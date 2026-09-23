@@ -324,5 +324,44 @@
   (org-modern-block-name t)
   (org-modern-block-fringe 4))
 
+;; ─── appt 议程提醒：Android 走系统通知 ────────────────────────────
+;; 常规 App 语义：到点弹系统通知栏（Emacs 前台/后台都触达，点击回
+;; Emacs），而非只在 frame 内弹窗。进程被杀则提醒随之消失——端口靠
+;; 常驻通知保命，存活率尚可但不保证。
+
+(declare-function android-notifications-notify "androidselect.c")
+(declare-function appt-activate "appt")
+(declare-function appt-disp-window "appt")
+(declare-function org-agenda-to-appt "org-agenda")
+(defvar appt-disp-window-function)
+
+(defun custom/appt-notify (min-to-app new-time msg)
+  "appt 提醒出口：Android 发系统通知，其余平台回退内置弹窗。
+MIN-TO-APP/NEW-TIME/MSG 任一可为 list（多条议程同时到点）。"
+  (if (fboundp 'android-notifications-notify)
+      (android-notifications-notify
+       :title "议程提醒"
+       :body (format "%s 分钟后：%s"
+                     (if (listp min-to-app)
+                         (mapconcat #'identity min-to-app ", ")
+                       min-to-app)
+                     (if (listp msg) (mapconcat #'identity msg "\n") msg))
+       :group "Org Agenda"
+       :urgency 'normal)
+    (appt-disp-window min-to-app new-time msg)))
+
+(when custom:android-p
+  ;; agenda 加载后接管提醒出口并建首次提醒表；org-agenda-to-appt 挂在
+  ;; finalize 上，agenda 每次刷新重建（deadline/scheduled/timestamp）
+  (with-eval-after-load 'org-agenda
+    (require 'appt)
+    (setq appt-disp-window-function #'custom/appt-notify)
+    (appt-activate 1)
+    (add-hook 'org-agenda-finalize-hook #'org-agenda-to-appt)
+    (org-agenda-to-appt))
+  ;; 不挂绝对计时兜底：org-agenda 加载重（数秒），绝对计时会抢占
+  ;; 输入；提醒是尽力而为的增强，让位交互流畅度
+  (run-with-idle-timer 90 nil (lambda () (require 'org-agenda))))
+
 (provide 'init-org)
 ;;; init-org.el ends here
