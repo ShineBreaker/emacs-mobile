@@ -61,6 +61,40 @@
         (call-interactively #'consult-ripgrep))
     (call-interactively #'consult-line)))
 
+;; ─── 撤销/重做键位（CUA 惯例，modbar 可达：修→Ctrl→z） ────────────
+;; C-z 原绑 suspend-frame：GUI 下图标化 frame、Android 下无意义。
+;; undo-only 连按到最早即报错，不会像 undo 那样反向进入重做。
+
+(define-key global-map (kbd "C-z") #'undo-only)
+(define-key global-map (kbd "C-S-z") #'undo-redo)
+
+;; ─── 语义扩选（expreg）：「选」钮连点词→句→段逐级扩大选区 ──────────
+;; 长按选词已由官方 touch-screen-word-select 覆盖；扩选补「词以上」的
+;; 层级段，是触屏选中正文的主要途径（替代键盘的 mark-sexp/paragraph）。
+
+(use-package expreg
+  :defer t
+  :commands (expreg-expand expreg-contract))
+
+(defconst custom/expreg--buttons
+  '(("\uF065" "选" "扩大选区：连点逐级 词→句→段（expreg）" expreg-expand))
+  "可编辑 buffer mode-line 局部钮表：(NF 字形 tty 回退 帮助 命令)。")
+
+(defun custom/expreg--mode-line-buttons ()
+  "expreg 钮串。"
+  (mapconcat #'custom/mode-line--button custom/expreg--buttons nil))
+
+(defun custom/expreg--setup-mode-line ()
+  "可编辑 buffer：右端钮组前插入「选」钮。
+org 跳过：其「作 选」钮组由 init-org 的 org-mode-hook 一并注入
+（org 经 outline←text 链也会触发本 hook，不跳则「选」重复）。"
+  (unless (derived-mode-p 'org-mode)
+    (custom/mode-line--add-local-buttons #'custom/expreg--mode-line-buttons)))
+
+;; org ← outline ← text、markdown/gfm ← text、配置等代码 ← prog
+(add-hook 'text-mode-hook #'custom/expreg--setup-mode-line)
+(add-hook 'prog-mode-hook #'custom/expreg--setup-mode-line)
+
 ;; ─── 触屏确认面板（widget 是/否，替代键盘 y-or-n） ─────────────────
 
 (defvar custom/touch-confirm-mode-map
