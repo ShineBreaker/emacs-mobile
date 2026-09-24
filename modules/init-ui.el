@@ -197,10 +197,11 @@
      'help-echo help)))
 
 (defun custom/mode-line--add-local-buttons (fn)
-  "buffer-local：在右端钮组前插入 (:eval (FN)) 按钮串。"
+  "buffer-local：在右端钮组前插入 (:eval (FN)) 按钮串（幂等，
+mode 重复激活不会叠加同一钮组）。"
   (let* ((fmt (default-value 'mode-line-format))
          (pos (seq-position fmt '(:eval (custom/mode-line--right-part)))))
-    (when pos
+    (when (and pos (not (member `(:eval (,fn)) mode-line-format)))
       (setq-local mode-line-format
                   (append (seq-take fmt pos)
                           (list `(:eval (,fn)))
