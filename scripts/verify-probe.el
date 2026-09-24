@@ -132,7 +132,36 @@
         (unless (fboundp 'custom/appt-notify)
           (error "custom/appt-notify 未定义"))
 
-        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩、which-key 兜底、mode-line 单次构造、权限警示静默、kp 模板、eww/appt 接口"))
+        ;; 10) 触屏交互：vertico 候选点选开启、撤销/重做键位、
+        ;;     org 操作面板与局部钮组注入、expreg autoload 就位
+        (unless (bound-and-true-p vertico-mouse-mode)
+          (error "vertico-mouse-mode 未开启（候选 tap 无响应）"))
+        (unless (eq (key-binding (kbd "C-z")) 'undo-only)
+          (error "C-z 未绑定 undo-only: %S" (key-binding (kbd "C-z"))))
+        (unless (eq (key-binding (kbd "C-S-z")) 'undo-redo)
+          (error "C-S-z 未绑定 undo-redo: %S" (key-binding (kbd "C-S-z"))))
+        (unless (fboundp 'expreg-expand)
+          (error "expreg 未安装（autoload 未注册）"))
+        (unless (memq #'custom/expreg--setup-mode-line text-mode-hook)
+          (error "text-mode-hook 未挂「选」钮注入"))
+        (unless (memq #'custom/org--setup-mode-line org-mode-hook)
+          (error "org-mode-hook 未挂「作」钮注入"))
+        (with-temp-buffer
+          (insert "* 测试\n")
+          (org-mode)
+          (unless (member '(:eval (custom/org--mode-line-buttons))
+                          mode-line-format)
+            (error "org mode-line 未注入局部钮组"))
+          (unless (> (string-width (custom/org--mode-line-buttons)) 0)
+            (error "org 钮串为空")))
+        (custom/org-actions-panel)
+        (unless (> (buffer-size) 20)
+          (error "org 操作面板构建为空"))
+        (when (get-buffer "*Org 操作*") (kill-buffer "*Org 操作*"))
+        (unless (functionp (custom/org-actions--run #'ignore))
+          (error "面板 action 构造失败"))
+
+        (message "VERIFY-PROBE-OK 图标 18/18、仪表盘数据、tool-bar 10 钮、dired 钮组收缩、which-key 兜底、mode-line 单次构造、权限警示静默、kp 模板、eww/appt 接口、vertico 点选/撤销键位/org 面板"))
     (error
      (message "VERIFY-PROBE-FAIL %s" (error-message-string err))
      (kill-emacs 1))))
