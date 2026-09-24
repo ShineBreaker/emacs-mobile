@@ -324,6 +324,101 @@
   (org-modern-block-name t)
   (org-modern-block-fringe 4))
 
+;; ─── org 触屏操作面板（mode-line「作」钮 → widget 按钮面板） ──────
+;; org 高频动作（TODO/排程/折叠/移动/clock）在纯触屏下无键位可达，
+;; 复用抓笔记面板模式集中触达。面板同窗替换 org buffer，唤出时记录
+;; 源 buffer；动作埋掉面板显式切回再执行命令（不靠 buffer-list 顺序）。
+
+(declare-function custom/mode-line--button "init-ui")
+(declare-function custom/mode-line--add-local-buttons "init-ui")
+(declare-function org-todo "org")
+(declare-function org-schedule "org")
+(declare-function org-deadline "org")
+(declare-function org-insert-heading "org")
+(declare-function org-metaup "org")
+(declare-function org-metadown "org")
+(declare-function org-metaleft "org")
+(declare-function org-metaright "org")
+(declare-function org-cycle "org")
+(declare-function org-cycle-global "org")
+(declare-function org-clock-in "org")
+(declare-function org-clock-out "org")
+(declare-function org-set-tags-command "org")
+(declare-function org-insert-link "org")
+(declare-function consult-org-heading "consult")
+(declare-function custom/touch-confirm-mode "init-touch")
+(defvar custom/expreg--buttons)  ; init-touch（「选」钮与 org 共用规格）
+(defvar touch-screen-display-keyboard)
+
+;; 面板键图/键盘抑制与确认面板一致，直接派生复用（init-touch 先加载）
+(define-derived-mode custom/org-actions-mode custom/touch-confirm-mode
+  "Org操作" "org 上下文操作面板。")
+
+(defconst custom/org-actions--layout
+  '((("TODO 循环" . org-todo) ("排程" . org-schedule) ("截止" . org-deadline))
+    (("插同级标题" . org-insert-heading)
+     ("上移" . org-metaup) ("下移" . org-metadown))
+    (("升级" . org-metaleft) ("降级" . org-metaright)
+     ("折叠/展开" . org-cycle))
+    (("全局折叠" . org-cycle-global)
+     ("Clock 入" . org-clock-in) ("Clock 出" . org-clock-out))
+    (("跳转标题" . consult-org-heading)
+     ("加标签" . org-set-tags-command) ("插链接" . org-insert-link)))
+  "操作面板按钮矩阵：行 →（标签 . 命令）。")
+
+(defvar-local custom/org-actions--source nil
+  "唤出本操作面板的 org buffer（动作执行的目标）。")
+
+(defun custom/org-actions--run (command)
+  "返回面板钮 action：埋掉面板切回源 org buffer，再交互执行 COMMAND。"
+  (lambda (&rest _)
+    (let ((src custom/org-actions--source))
+      (kill-buffer)
+      (when (buffer-live-p src)
+        (switch-to-buffer src))
+      (call-interactively command))))
+
+(defun custom/org-actions-panel ()
+  "弹 org 上下文操作面板（mode-line「作」钮）。"
+  (interactive)
+  (let ((src (current-buffer)))
+    (switch-to-buffer (get-buffer-create "*Org 操作*"))
+    (custom/org-actions-mode)
+    (setq custom/org-actions--source src))
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert (propertize "  Org 操作\n\n" 'face 'bold))
+    (dolist (row custom/org-actions--layout)
+      (insert "  ")
+      (dolist (cell row)
+        (widget-create 'item
+                       :tag (concat " " (car cell) " ")
+                       :action (custom/org-actions--run (cdr cell))
+                       :mouse-face 'highlight
+                       :button-prefix " " :button-suffix " "
+                       :format "%[%t%]")
+        (insert "  "))
+      (insert "\n\n"))
+    (goto-char (point-min))))
+
+(defconst custom/org--mode-line-buttons
+  `(("\uF013" "作" "Org 操作面板（TODO/排程/折叠/移动…）"
+     custom/org-actions-panel)
+    ,@custom/expreg--buttons)
+  "org-mode mode-line 局部钮表：(NF 字形 tty 回退 帮助 命令)。
+「选」钮规格复用 init-touch 的 expreg 钮表（org 经 outline←text 链
+也会跑 text-mode-hook，那里对 org 跳过防重复）。")
+
+(defun custom/org--mode-line-buttons ()
+  "org 钮串。"
+  (mapconcat #'custom/mode-line--button custom/org--mode-line-buttons nil))
+
+(defun custom/org--setup-mode-line ()
+  "org buffer：右端钮组前插入「作」「选」钮。"
+  (custom/mode-line--add-local-buttons #'custom/org--mode-line-buttons))
+
+(add-hook 'org-mode-hook #'custom/org--setup-mode-line)
+
 ;; ─── appt 议程提醒：Android 走系统通知 ────────────────────────────
 ;; 常规 App 语义：到点弹系统通知栏（Emacs 前台/后台都触达，点击回
 ;; Emacs），而非只在 frame 内弹窗。进程被杀则提醒随之消失——端口靠
