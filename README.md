@@ -4,7 +4,7 @@ Android 原生 Emacs（GNU Emacs 30.2+，包名 `org.gnu.emacs`）触屏优化�
 
 架构：`early-init.el`（启动优化）+ `init.el`（模块入口）+ `modules/init-*.el`（基础 / 包管理 / UI / 触屏 / 工具栏 / 补全 / Org / Markdown / 仪表盘 / 阅读 / 终饰）。本仓库同时维护 **Termux 自动重签流水线**（GitHub Action + `just` + `scripts/`），用于产出与 Emacs 同签名的 Termux APK，见 [docs/00-workflow.md](docs/00-workflow.md)。
 
-> 交互组件用**官方组件分层**：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 打开/保存/复制/粘贴/剪切/搜索/深浅主题/配置文件夹(dired)/仪表盘（10 钮；撤销/重做走 M-x），图标为 [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) symbolic 矢量 SVG（加载时按深浅主题重着色直渲，无 librsvg 构建回退中灰 PNG 兜底；`just icons` 幂等重建，上游 GPL-3.0，来源见 data/icons/README.md；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载命令入口与 buffer/窗口控制——命 执行任意命令（M-x，触屏下先唤出虚拟键盘；dired 下隐藏，给文件操作钮留宽）、寻 文档内导航、» which-key 翻页、换 切换缓冲区、✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
+> 交互组件用**官方组件分层**：**tool-bar**（底部，官方）承载全局命令——[修饰键栏开关] 打开/保存/复制/粘贴/剪切/搜索/深浅主题/配置文件夹(dired)/仪表盘（10 钮；撤销/重做走 modbar 的 C-z / C-S-z），图标为 [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) symbolic 矢量 SVG（加载时按深浅主题重着色直渲，无 librsvg 构建回退中灰 PNG 兜底；`just icons` 幂等重建，上游 GPL-3.0，来源见 data/icons/README.md；复制剪切有选区作用于选区、无选区作用于当前行）；**modifier-bar**（官方）承载修饰键（tap 后下一个输入带修饰）；**mode-line** 承载命令入口与 buffer/窗口控制——命 执行任意命令（M-x，触屏下先唤出虚拟键盘；dired 下隐藏，给文件操作钮留宽）、寻 文档内导航、» which-key 翻页、换 切换缓冲区、✕ 关闭当前 buffer 及其窗口（仅剩主窗时只关 buffer）；org buffer 另有局部钮「作」（操作面板：TODO/排程/截止/插标题/移动/升降级/折叠/Clock/跳转/标签/链接）与「选」（expreg 语义扩选，连点 词→句→段 逐级扩大，其余 text/prog buffer 同样带「选」）；补全列表（M-x/找文件/consult）候选可直接点选（vertico-mouse，tap=选中，tap 输入区照常唤键盘）。启动显示**仪表盘**（braille 点阵 banner + navigator 入口 [抓笔记] [议程] [Roam 笔记]；最近文件按目录首字母缩写显示、本周日程、最近 Roam 笔记，条目直接点按打开）。
 
 ## 1. APK 选择
 
@@ -114,6 +114,10 @@ M-x org-roam-db-sync   ; 从 org 文件重建 db（db 不随 Syncthing 同步）
 - agenda 含今日带时刻的 SCHEDULED/DEADLINE 条目 → 到点弹系统通知（通知栏可见，点击回 Emacs）。
 - 浏览器分享 `org-protocol://capture?url=...&title=...&body=...` 到 Emacs → 直接落 inbox（`kp` 模板，不弹编辑）。
 - eww 打开网页 → mode-line 出现「退」「外」两钮；「外」把当前页交给系统浏览器。
+- 「命」→ M-x 列表 / 「开」→ 文件列表 → 候选项 tap 直接选中（不再无响应）；点选后不额外弹键盘，点输入行才唤键盘。
+- modbar 依次点 Ctrl、z → 撤销一步（undo-only 到最早即停，不反向）；Ctrl+Shift+z → 重做。
+- org buffer → mode-line 出现「作」「选」两钮：「作」弹操作面板，点「TODO 循环」等直接作用于源 buffer；「选」在词上连点逐级扩选。
+- 「作」→「排程/截止」→ 弹出日期选择：日历 tap 与 `+3d`/`tomorrow` 式键盘输入都可用，任一能完成即算通过。
 
 ## 8. 常见问题
 

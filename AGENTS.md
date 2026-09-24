@@ -45,5 +45,6 @@ Android 原生 Emacs 触屏配置（纯触屏、无键盘交互）＋ Termux APK
 
 - C1（dashboard 拆层）、C2（图标管线）、C3（字形统一）、C4（声明显式化）、C5（颜色状态对称）均已落地；mode-line 按钮构造与插入已收敛至 init-ui 单一入口；全模块 byte-compile 零警告。
 - Android 系统集成层（2026-09 App 化轮）：存储权限引导走 `custom/android-*`（init-touch 谓词/请求 + dashboard 警示行承接官方 splash 职责）；agenda 提醒经 `custom/appt-notify` 走 `android-notifications-notify`（idle 90s 预载 org-agenda 建提醒表，故意不挂绝对计时——加载重不能抢输入）；分享入库走 org-protocol `kp` 隐藏模板（`org-protocol-default-template-key` 必须显式指定，nil 会弹触屏不可用的 org-mks 面板）；eww「退/外」钮交链接给系统浏览器（`android-browse-url`）。
+- 触屏交互层（2026-09 打磨轮）：`vertico-mouse-mode` 让补全候选可点选（tap→mouse-1→RET；minibuffer 内 `touch-screen-display-keyboard` 置 nil——候选 tap 的命令不在 `touch-screen-set-point-commands` 会跳过键盘逻辑，输入区 tap 仍唤键盘）；撤销/重做 = C-z(`undo-only`)/C-S-z(`undo-redo`) 经 modbar；org 「作」钮弹 widget 操作面板（记录源 buffer，action 显式切回执行，不靠 buffer-list）；「选」钮走 expreg 扩选（text/prog hook 注入，org 由「作」钮组一并带、text hook 跳过防重复）；`custom/mode-line--add-local-buttons` 幂等（mode 重激活不叠加）。
 - 已评估维持现状：early-init/init.el 部署转发双份镜像判定（注释互引、工作正常，部署链路改动敏感）；justfile 与 Elisp 层的图标/字体清单重复（生成侧与运行侧职责分离，跨语言单一数据源得不偿失）。
 - 已知可接受：straight 的 use-package 集成注入 `eval-when-compile (load "org-roam")`，从源码编译 init-org 时会加载 org-roam（autosync 已剥离，仅包加载本身，秒级）。
