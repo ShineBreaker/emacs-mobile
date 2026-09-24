@@ -13,7 +13,19 @@
 
 (use-package vertico
   :init (vertico-mode)
+        ;; 候选可点选（vertico 自带扩展）：真机 tap 经 touch-screen 翻译
+        ;; 为 mouse-1（候选无 button/follow-link 属性，不会转 mouse-2），
+        ;; 命中候选上的 vertico-mouse-map → RET 语义直接选中
+        (vertico-mouse-mode)
   :custom (vertico-resize t))
+
+;; tap 候选行选中后不唤系统键盘：候选 tap 解析出的命令不在
+;; touch-screen-set-point-commands 内，display-keyboard 为 nil 时键盘
+;; 逻辑只服务于 set-point 类命令；tap 输入区（mouse-set-point）仍照常
+;; 唤键盘输入查询文本。桌面该变量本就为 nil，此设置无影响。
+(defvar touch-screen-display-keyboard)
+(add-hook 'minibuffer-setup-hook
+          (lambda () (setq-local touch-screen-display-keyboard nil)))
 
 (use-package orderless
   :custom (completion-styles '(orderless basic)))
